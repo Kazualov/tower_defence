@@ -7,7 +7,10 @@ import Game.Shapes
 drawScene :: Picture
 drawScene = Pictures
   [ drawGrid
-  , drawMainTower
+  , drawMainTower (0, 0) 2.0
+  , drawArcherTower (2, 1) 1.5
+  , drawCannonTower (4, 1) 1.5
+  , drawSniperTower (6, 2) 1.5
   , drawRightGate
   , drawTopGate
   ]
