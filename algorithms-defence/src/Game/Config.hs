@@ -1,18 +1,18 @@
 module Game.Config where
 
-cellSize :: Float
-cellSize = 20
+-- Logical map dimensions
+mapWidth, mapHeight :: Float
+mapWidth = 600
+mapHeight = 400
 
-gridWidth, gridHeight :: Int
-gridWidth = 35
-gridHeight = 25
-
+-- Window dimensions (slightly larger)
 windowWidth, windowHeight :: Int
-windowWidth  = round (cellSize * fromIntegral gridWidth)
-windowHeight = round (cellSize * fromIntegral gridHeight)
+windowWidth = 800
+windowHeight = 600
 
-colToX :: Int -> Float
-colToX col = -fromIntegral windowWidth / 2 + cellSize / 2 + fromIntegral col * cellSize
+-- Offsets
+mapOffsetY :: Float
+mapOffsetY = -20  -- so that text is ~5 px above
 
-rowToY :: Int -> Float
-rowToY row = -fromIntegral windowHeight / 2 + cellSize / 2 + fromIntegral row * cellSize
+textAboveMapY :: Float
+textAboveMapY = mapHeight / 2 + 5

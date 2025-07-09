@@ -3,20 +3,20 @@ module Game.Render where
 import Graphics.Gloss
 import Game.Config
 import Game.Shapes
+import Game.Types
 
-drawScene :: Picture
-drawScene = Pictures
-  [ drawGrid
-  , drawMainTower
-  , drawRightGate
-  , drawTopGate
-  ]
+render :: GameState -> Picture
+render _ = pictures
+  [ -- Centered map group
+    translate 0 mapOffsetY $ pictures
+      [ paperTexture
+      , mapBorder
+      , lambdaPath
+      , towerSpots
+      , mainTower
+      ]
 
-drawGrid :: Picture
-drawGrid = Pictures
-  [ translate x y $ color (greyN 0.8) $ rectangleWire cellSize cellSize
-  | row <- [0 .. gridHeight - 1]
-  , col <- [0 .. gridWidth - 1]
-  , let x = colToX col
-  , let y = rowToY row
+  -- Text ~5px above top edge of map
+  , translate (-mapWidth/2 + 0) (textAboveMapY + mapOffsetY) $
+      scale 0.2 0.2 $ color black $ text "You may draw your doodles here:"
   ]
