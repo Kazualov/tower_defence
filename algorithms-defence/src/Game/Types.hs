@@ -3,10 +3,21 @@ module Game.Types where
 
 type Position = (Float, Float)
 
+type TowerSpot = (Float, Float)
+
+type Tower = (TowerType, TowerSpot)
+
+data TowerType = Archer | Cannon | Sniper
+  deriving (Show, Eq)
+
+
 data GameState = GameState
   { towerHP     :: Int
   , doodleText  :: String
   , enemies :: [Enemy]
+  , towers      :: [Tower]
+  , towerSpots  :: [TowerSpot]
+  , selectedTower :: TowerType
   } deriving (Show)
 
 data EnemyType = EChar Char | EInt Int | EString String
@@ -16,6 +27,7 @@ data Enemy = Enemy
   { enemyType :: EnemyType
   , position  :: (Float, Float)
   , currentWaypoint :: Int  -- Index of the current target waypoint
+  , health :: Int
   } deriving (Show, Eq)
 
 -- Define the path waypoints (adjust coordinates based on your actual layout)

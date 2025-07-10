@@ -158,3 +158,57 @@ towerSpots = color black $ pictures $ map drawX positions
       , (150, 50),  (150, -60),
         (-10, -5)
       ]
+
+drawArcherTowerRaw :: Picture
+drawArcherTowerRaw = scale 2 2 $
+  Pictures
+    [ color (makeColorI 150 75 0 255) $
+        rectangleSolid (cellSize * 0.3) (cellSize * 0.7)
+
+    , translate (cellSize * 0.05) (cellSize * 0.5) $
+        rotate (-15) $
+        Pictures
+          [ color black $
+              arc 270 90 (cellSize * 0.25)
+          , color black $
+              line [(-cellSize * 0.25, 0), (cellSize * 0.4, 0)]
+          , color black $
+              line [(0, -cellSize * 0.25), (0, cellSize * 0.25)]
+          , translate (cellSize * 0.4) 0 $
+              arrowhead
+          ]
+    ]
+
+
+drawCannonTowerRaw :: Picture
+drawCannonTowerRaw = scale 2 2 $
+  Pictures
+        [ color (greyN 0.3) $
+            rectangleSolid (cellSize * 0.4) (cellSize * 0.5)
+        , translate (cellSize * 0.35) 0 $
+            color black $
+            rectangleSolid (cellSize * 0.3) (cellSize * 0.1)
+        ]
+
+drawSniperTowerRaw :: Picture
+drawSniperTowerRaw = scale 2 2 $
+  Pictures
+        [ -- Tower body
+          color (makeColorI 80 80 140 255) $
+            rectangleSolid (cellSize * 0.2) (cellSize * 1)
+
+          -- Long sniper barrel (line)
+        , translate (cellSize * 0) (cellSize * 0.5) $
+            Pictures
+                [
+                color black $
+                    rectangleSolid (cellSize * 0.7) (cellSize * 0.05)
+
+                , color black $
+                    arc 0 180 (cellSize * 0.25)
+
+                , translate (cellSize * 0) (cellSize * 0.12) $
+                    color orange $
+                    circleSolid 1.9
+                ]
+        ]
