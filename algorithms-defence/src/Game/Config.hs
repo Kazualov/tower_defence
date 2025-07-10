@@ -1,5 +1,8 @@
 module Game.Config where
+
+
 import Game.Types
+import Game.Enemies (createEnemy)
 
 cellSize :: Float
 cellSize = 20
@@ -48,3 +51,25 @@ topPathWaypoints =
  , (500, -100) -- Going down
  , (580, -100) -- End (base)
  ]
+
+ -- Initial game state
+initialState :: GameState
+initialState = GameState
+  { towerHP = 100
+  , doodleText = "Hello"
+  , enemies =
+    [ createEnemy (EChar 'x')      -- Creates enemy at spawn with waypoint 0
+    , createEnemy (EInt 42)        -- Creates enemy at spawn with waypoint 0
+    , createEnemy (EString "List") -- Creates enemy at spawn with waypoint 0
+    ]
+  , towers = []  -- no towers at start
+  , towerSpots =  -- same positions used by drawXs in Game.Shapes
+      [ (-275, 10), (-275, -70)
+      , (-175, 10),  (-175, -70)
+      , (-75, 10),   (-75, -70)
+      , (25, 40),  (25, -105)
+      , (125, 70),  (125, -120)
+      , (50, -30)
+      ]
+  , selectedTower = Archer
+  }

@@ -22,27 +22,6 @@ main = play
   handleInput
   updateGame
 
--- Initial game state
-initialState :: GameState
-initialState = GameState
-  { towerHP = 100
-  , doodleText = "Hello"
-  , enemies =
-    [ createEnemy (EChar 'x')      -- Creates enemy at spawn with waypoint 0
-    , createEnemy (EInt 42)        -- Creates enemy at spawn with waypoint 0
-    , createEnemy (EString "List") -- Creates enemy at spawn with waypoint 0
-    ]
-  , towers = []  -- no towers at start
-  , towerSpots =  -- same positions used by drawXs in Game.Shapes
-      [ (-100, 20), (-100, -30)
-      , (-30, 30),  (-30, -50)
-      , (40, 60),   (40, -80)
-      , (100, 75),  (100, -90)
-      , (150, 50),  (150, -60)
-      , (-10, -5)
-      ]
-  , selectedTower = Archer
-  }
 
 handleInput :: Event -> GameState -> GameState
 handleInput (EventKey (Char '1') Down _ _) gs = gs { selectedTower = Archer }

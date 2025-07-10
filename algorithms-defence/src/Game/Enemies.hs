@@ -3,7 +3,6 @@ module Game.Enemies where
 
 import Graphics.Gloss
 import Game.Types
-import Game.Config
 
 drawEnemy (Enemy etype (x, y) _ hp) =
   translate x y $

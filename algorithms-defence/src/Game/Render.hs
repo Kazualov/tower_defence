@@ -22,7 +22,7 @@ render gs = Pictures
       ]
       , drawEnemies (enemies gs)   -- enemies come from GameState now
       , drawPlacedTowers (towers gs)
-      , translate (-mapWidth/2 + 20) (-mapHeight/2 - 30) $
+      , translate (-mapWidth/2 + 20) (-mapHeight/2 - 50) $
         scale 0.15 0.15 $
         color black $
         text ("Selected: " ++ show (selectedTower gs))
