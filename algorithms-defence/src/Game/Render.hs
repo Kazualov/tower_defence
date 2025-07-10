@@ -36,13 +36,14 @@ drawPlacedTowers :: [Tower] -> Picture
 drawPlacedTowers = pictures . map drawTowerAtScreen
 
 drawTowerAtScreen :: Tower -> Picture
-drawTowerAtScreen (ttype, (x, y)) =
+drawTowerAtScreen (Tower ttype pos _) =
   translate x y $
-    scale 1 1 $
-      case ttype of
-        Archer -> drawArcherTowerRaw
-        Cannon -> drawCannonTowerRaw
-        Sniper -> drawSniperTowerRaw
+    case ttype of
+      Archer -> drawArcherTowerRaw
+      Cannon -> drawCannonTowerRaw
+      Sniper -> drawSniperTowerRaw
+  where (x, y) = pos
+
 
 -- Convert screen coords to grid cells
 xToCol :: Float -> Int

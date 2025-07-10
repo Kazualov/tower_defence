@@ -57,7 +57,7 @@ tryPlaceTower :: (Float, Float) -> GameState -> GameState
 tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
     Just spot ->
-      let newTower = (selectedTower gs, spot)
+      let newTower = Tower (selectedTower gs) spot 0.0
           remainingSpots = filter (/= spot) (towerSpots gs)
       in gs { towers = newTower : towers gs, towerSpots = remainingSpots }
     Nothing -> gs
@@ -70,6 +70,8 @@ tryPlaceTower click gs =
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs =
   let movedEnemies = updateEnemies dt (enemies gs)
-      damagedEnemies = applyTowerDamage (towers gs) movedEnemies
+      (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs) movedEnemies
       aliveEnemies = filter (\e -> health e > 0) damagedEnemies
-  in gs { enemies = aliveEnemies }
+      cooledTowers = updateTowersCooldown dt updatedTowers
+  in gs { enemies = aliveEnemies, towers = cooledTowers }
+

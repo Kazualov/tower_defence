@@ -6,23 +6,54 @@ import Game.Types
 import Game.Config
 import Data.List (mapAccumL)
 
-towerDamage :: Int
-towerDamage = 10
+cooldownFor :: TowerType -> Float
+cooldownFor Archer = 0.5
+cooldownFor Cannon = 1.0
+cooldownFor Sniper = 2.0
+
+
+towerDamageFor :: TowerType -> Int
+towerDamageFor Archer = 20
+towerDamageFor Cannon = 40
+towerDamageFor Sniper = 80
 
 towerRange :: Float
 towerRange = 100  -- radius in pixels
 
-applyTowerDamage :: [Tower] -> [Enemy] -> [Enemy]
-applyTowerDamage towers enemies =
-  [ if any (inRange pos) towers
-      then enemy { health = health enemy - towerDamage }
-      else enemy
-  | enemy@(Enemy _ pos _ hp) <- enemies, hp > 0
-  ]
+towerCooldownDuration :: Float
+towerCooldownDuration = 1.0  -- 1 second
+
+updateTowersCooldown :: Float -> [Tower] -> [Tower]
+updateTowersCooldown dt = map updateTower
   where
-    inRange :: Position -> Tower -> Bool
-    inRange (ex, ey) (_, (tx, ty)) =
-      sqrt ((ex - tx)^2 + (ey - ty)^2) <= towerRange
+    updateTower t = t { towerCooldown = max 0 (towerCooldown t - dt) }
+
+
+applyTowerDamage :: [Tower] -> [Enemy] -> ([Tower], [Enemy])
+applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
+  where
+    attackIfReady :: ([Tower], [Enemy]) -> Tower -> ([Tower], [Enemy])
+    attackIfReady (ts, es) tower
+      | towerCooldown tower <= 0 =
+          let (damagedEnemies, attacked) = damageEnemiesInRange tower es
+              resetTower = tower { towerCooldown = cooldownFor (towerType tower) }
+          in (resetTower : ts, damagedEnemies)
+      | otherwise = (tower : ts, es)
+
+    damageEnemiesInRange :: Tower -> [Enemy] -> ([Enemy], Bool)
+    damageEnemiesInRange tower = foldr go ([], False)
+      where
+        (tx, ty) = towerPos tower
+        dmg = towerDamageFor (towerType tower)
+        go enemy@(Enemy t (ex, ey) w h) (acc, attacked)
+          | not attacked && inRange (ex, ey) (tx, ty) =
+              (enemy { health = h - dmg } : acc, True)
+          | otherwise = (enemy : acc, attacked)
+
+    inRange :: Position -> Position -> Bool
+    inRange (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRange
+
+
 
 
 updateEnemies :: Float -> [Enemy] -> [Enemy]

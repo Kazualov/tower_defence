@@ -5,7 +5,12 @@ type Position = (Float, Float)
 
 type TowerSpot = (Float, Float)
 
-type Tower = (TowerType, TowerSpot)
+data Tower = Tower
+  { towerType     :: TowerType
+  , towerPos      :: TowerSpot
+  , towerCooldown :: Float  -- seconds remaining until next shot
+  } deriving (Show, Eq)
+
 
 data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
