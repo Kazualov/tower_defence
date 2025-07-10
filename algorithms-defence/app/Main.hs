@@ -1,11 +1,15 @@
 module Main where
 
-import Graphics.Gloss.Interface.Pure.Game (Event)
 import Graphics.Gloss
-import Game.Types
-import Game.Config
-import Game.Render
+import Graphics.Gloss.Interface.Pure.Game
 
+import Game.Types -- contains GameState, Enemy, EnemyType definitions
+import Game.Render
+import Game.Logic -- contains updateEnemies :: Float -> [Enemy] -> [Enemy]
+import Game.Config
+import Game.Enemies (createEnemy) -- Import the helper function
+
+-- Main entry point
 main :: IO ()
 main = play
   (InWindow "Haskell Tower Defense" (windowWidth, windowHeight) (100, 100))
@@ -14,13 +18,24 @@ main = play
   initialState
   render
   handleInput
-  update
+  updateGame
 
+-- Initial game state
 initialState :: GameState
-initialState = GameState { towerHP = 100, doodleText = "" }
+initialState = GameState
+  { towerHP = 100
+  , doodleText = "Hello"
+  , enemies =
+    [ createEnemy (EChar 'x')      -- Creates enemy at spawn with waypoint 0
+    , createEnemy (EInt 42)        -- Creates enemy at spawn with waypoint 0
+    , createEnemy (EString "List") -- Creates enemy at spawn with waypoint 0
+    ]
+  }
 
+-- No input handling for now
 handleInput :: Event -> GameState -> GameState
-handleInput _ state = state  -- No interaction yet
+handleInput _ gs = gs
 
-update :: Float -> GameState -> GameState
-update _ state = state       -- No game logic yet
+-- Game update logic
+updateGame :: Float -> GameState -> GameState
+updateGame dt gs = gs { enemies = updateEnemies dt (enemies gs) }
