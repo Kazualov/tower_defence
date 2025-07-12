@@ -4,10 +4,13 @@
 -- Updated Game.Logic
 module Game.Logic where
 
+
 import Game.Enemies
 import Game.Types
 import Game.Config
-import Data.List (mapAccumL)
+import Data.List (mapAccumL, partition, find)
+import Data.Maybe (listToMaybe)
+
 
 cooldownFor :: TowerType -> Float
 cooldownFor Archer = 0.5
@@ -20,8 +23,10 @@ towerDamageFor Archer = 20
 towerDamageFor Cannon = 40
 towerDamageFor Sniper = 80
 
-towerRange :: Float
-towerRange = 100  -- radius in pixels
+towerRangeFor :: TowerType -> Float
+towerRangeFor Archer = 150  -- radius in pixels
+towerRangeFor Cannon = 100
+towerRangeFor Sniper = 250
 
 towerCooldownDuration :: Float
 towerCooldownDuration = 1.0  -- 1 second
@@ -29,7 +34,8 @@ towerCooldownDuration = 1.0  -- 1 second
 updateTowersCooldown :: Float -> [Tower] -> [Tower]
 updateTowersCooldown dt = map updateTower
   where
-    updateTower t = t { towerCooldown = max 0 (towerCooldown t - dt) }
+    updateTower t = t { towerCooldown = max 0 (towerCooldown t - dt)
+                      , towerTarget   = towerTarget t }
 
 
 applyTowerDamage :: [Tower] -> [Enemy] -> ([Tower], [Enemy])
@@ -38,23 +44,50 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
     attackIfReady :: ([Tower], [Enemy]) -> Tower -> ([Tower], [Enemy])
     attackIfReady (ts, es) tower
       | towerCooldown tower <= 0 =
-          let (damagedEnemies, attacked) = damageEnemiesInRange tower es
-              resetTower = tower { towerCooldown = cooldownFor (towerType tower) }
-          in (resetTower : ts, damagedEnemies)
-      | otherwise = (tower : ts, es)
+          let (maybeEnemyHit, newEnemies) = attackOneEnemy tower es
+              resetTower = tower { towerCooldown = cooldownFor (towerType tower)
+                                 , towerTarget   = maybeEnemyHit
+                                 }
+          in (resetTower : ts, newEnemies)
+      | otherwise =
+          -- Check if target is still valid (alive & in range)
+          let targetStillValid = case towerTarget tower of
+                Just target ->
+                  target `elem` es && inRange tower (enemyPosition target) (towerPos tower)
+                Nothing -> False
+              tower' = if targetStillValid then tower else tower { towerTarget = Nothing }
+          in (tower' : ts, es)
 
-    damageEnemiesInRange :: Tower -> [Enemy] -> ([Enemy], Bool)
-    damageEnemiesInRange tower = foldr go ([], False)
-      where
-        (tx, ty) = towerPos tower
-        dmg = towerDamageFor (towerType tower)
-        go enemy@(Enemy t (ex, ey) _ w h) (acc, attacked)
-          | not attacked && inRange (ex, ey) (tx, ty) =
-              (enemy { health = h - dmg } : acc, True)
-          | otherwise = (enemy : acc, attacked)
+    -- Each tower attacks only one enemy
+    attackOneEnemy :: Tower -> [Enemy] -> (Maybe Enemy, [Enemy])
+    attackOneEnemy tower es =
+      let dmg = towerDamageFor (towerType tower)
+          inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
+          currentTarget = towerTarget tower
 
-    inRange :: Position -> Position -> Bool
-    inRange (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRange
+          -- Prioritize sticking to the previous target if valid
+          chosenTarget =
+            case currentTarget of
+              Just t  -> if t `elem` inRangeEnemies then Just t else listToMaybe inRangeEnemies
+              Nothing -> listToMaybe inRangeEnemies
+
+      in case chosenTarget of
+           Just target ->
+             let updatedEnemies = map (damageIfTarget target dmg) es
+                 updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+             in (updatedTarget, updatedEnemies)
+           Nothing -> (Nothing, es)
+
+    -- Apply damage only to selected target
+    damageIfTarget :: Enemy -> Int -> Enemy -> Enemy
+    damageIfTarget target dmg enemy
+      | enemyPosition enemy == enemyPosition target = enemy { health = health enemy - dmg }
+      | otherwise = enemy
+
+    -- Check if enemy is in range of tower
+    inRange :: Tower -> Position -> Position -> Bool
+    inRange tower (x1, y1) (x2, y2) =
+      sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRangeFor (towerType tower)
 
 
 updateEnemies :: Float -> [Enemy] -> [Enemy]
@@ -118,3 +151,10 @@ updateWaveSystem dt gs@GameState{..}
                   }
            else
              gs { enemySpawnTimer = newEnemySpawnTimer }
+
+
+gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
+gainCoinsOnKills coinReward enemies =
+  let (alive, dead) = partition (\e -> health e > 0) enemies
+  in (alive, length dead * coinReward)
+

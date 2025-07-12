@@ -4,6 +4,10 @@ module Game.Config where
 import Game.Types
 import Graphics.Gloss
 
+
+coinRewardPerKill :: Int
+coinRewardPerKill = 10
+
 cellSize :: Float
 cellSize = 20
 
@@ -76,3 +80,7 @@ waveDelay = 5.0
 enemySpeed :: Float
 enemySpeed = 30
 
+towerCost :: TowerType -> Int
+towerCost Archer = 30
+towerCost Cannon = 50
+towerCost Sniper = 80

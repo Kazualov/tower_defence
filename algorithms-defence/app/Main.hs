@@ -8,7 +8,8 @@ import Game.Render
 import Game.Logic -- contains updateEnemies :: Float -> [Enemy] -> [Enemy]
 import Game.Config
 import Game.Enemies -- Import the helper function
-import Data.List (find)
+import Data.List (find, partition)
+
 
 -- Main entry point
 main :: IO ()
@@ -43,6 +44,7 @@ initialState = GameState
   , enemySpawnTimer = 0
   , groupSpawnTimer = 0
   , wavePauseTimer = 0
+  , coins = 100
   }
 
 handleInput :: Event -> GameState -> GameState
@@ -60,10 +62,17 @@ tryPlaceTower :: (Float, Float) -> GameState -> GameState
 tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
     Just spot ->
-      let newTower = Tower (selectedTower gs) spot 0.0
-          remainingSpots = filter (/= spot) (towerSpots gs)
-      in gs { towers = newTower : towers gs, towerSpots = remainingSpots }
-    Nothing -> gs
+      let cost = towerCost (selectedTower gs)
+      in if coins gs >= cost
+         then
+           let newTower = Tower (selectedTower gs) spot 0.0 Nothing
+               remainingSpots = filter (/= spot) (towerSpots gs)
+           in gs { towers = newTower : towers gs
+                 , towerSpots = remainingSpots
+                 , coins = coins gs - cost
+                 }
+         else gs  -- Not enough coins: do nothing
+    Nothing -> gs  -- No valid spot clicked
   where
     isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
@@ -74,8 +83,17 @@ updateGame dt gs =
   let gs1 = updateWaveSystem dt gs
       movedEnemies = updateEnemies dt (enemies gs1)
       (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) movedEnemies
-      aliveEnemies = filter (\e -> health e > 0) damagedEnemies
+      -- Split alive and dead enemies
+      (aliveEnemies, deadEnemies) = partition (\e -> health e > 0) damagedEnemies
+      -- Gain coins for each dead enemy
+      coinsEarned = length deadEnemies * coinRewardPerKill
+
       cooledTowers = updateTowersCooldown dt updatedTowers
-  in gs1 { enemies = aliveEnemies, towers = cooledTowers }
+  in gs1
+      { enemies = aliveEnemies
+      , towers = cooledTowers
+      , coins = coins gs1 + coinsEarned  -- Update coins
+      }
+
 
 

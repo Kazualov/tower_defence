@@ -9,6 +9,7 @@ data Tower = Tower
   { towerType     :: TowerType
   , towerPos      :: TowerSpot
   , towerCooldown :: Float  -- seconds remaining until next shot
+  , towerTarget   :: Maybe Enemy
   } deriving (Show, Eq)
 
 
@@ -31,6 +32,7 @@ data GameState = GameState
   , towers      :: [Tower]
   , towerSpots  :: [TowerSpot]
   , selectedTower :: TowerType
+  , coins       :: Int
   } deriving (Show)
 
 data EnemyType = EChar Char | EInt Int | EString String
