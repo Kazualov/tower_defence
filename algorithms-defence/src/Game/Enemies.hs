@@ -11,18 +11,18 @@ createEnemy etype path =
   let spawnPoint = case path of
         Upper -> head upperPathWaypoints
         Lower -> head lowerPathWaypoints
-  in Enemy etype spawnPoint 0 path
+  in Enemy etype spawnPoint 0 path 100
 
 drawEnemy :: Enemy -> Picture
-drawEnemy (Enemy etype (x, y) _ _) =
+drawEnemy (Enemy etype (x, y) _ _ hp) =
   translate x y $
     Pictures
-      [ color (makeColorI 255 0 255 255) $
+      [ color (makeColorI 255 255 255 255) $
           thickCircle 8 1
       , translate (-textOffset etype) (-6) $
-          scale 0.15 0.15 $
-            color black $
-              Text (enemyLabel etype)
+          scale 0.15 0.15 $ color black $ Text (enemyLabel etype)
+      , translate (-10) 12 $
+          scale 0.1 0.1 $ color red $ text (show hp)
       ]
 
 enemyLabel :: EnemyType -> String
@@ -40,7 +40,7 @@ pathWaypoints Upper = upperPathWaypoints
 pathWaypoints Lower = lowerPathWaypoints
 
 moveEnemy :: Float -> Enemy -> Enemy
-moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path)
+moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path hp)
   | waypointIndex >= length waypoints = enemy
   | otherwise =
       let (tx, ty) = waypoints !! waypointIndex
@@ -59,5 +59,25 @@ moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path)
                       else (x + speed * nextDx / nextDist, y + speed * nextDy / nextDist)
               else if dist < 1 then (x, y)
               else (x + speed * dx / dist, y + speed * dy / dist)
-      in Enemy etype (nx, ny) newWaypointIndex path
+      in Enemy etype (nx, ny) newWaypointIndex path hp
   where waypoints = pathWaypoints path
+
+-- Wave definitions using list comprehensions:
+generateWaves :: [[ [Enemy] ]]
+generateWaves =
+  [ [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
+    , [ createEnemy (EInt 1) Lower | _ <- [1..4] ]
+    , [ createEnemy (EString "a") Upper | _ <- [1..3] ]
+    ]
+  , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
+    , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]
+    , [ createEnemy (EString "b") Lower | _ <- [1..4] ]
+    , [ createEnemy (EChar 'C') Upper | _ <- [1..3] ]
+    ]
+  , [ [ createEnemy (EChar 'D') Upper | _ <- [1..4] ]
+    , [ createEnemy (EInt 3) Lower | _ <- [1..4] ]
+    , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
+    , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
+    , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
+    ]
+  ]

@@ -1,4 +1,6 @@
 module Game.Config where
+
+
 import Game.Types
 import Graphics.Gloss
 
@@ -62,16 +64,15 @@ lowerPathWaypoints =
   , mainTowerPos 
   ]
 
- -- Tower placement spots: Xs near the path
-towerSpots :: Picture
-towerSpots = color black $ pictures $ map drawX positions
-  where
-    drawX (x, y) = translate x y $ scale 0.15 0.15 $ text "x"
-    positions =
-      [ (-100, 20), (-100, -30)
-      , (-30, 30),  (-30, -50)
-      , (40, 60),   (40, -80)
-      , (100, 75),  (100, -90)
-      , (150, 50),  (150, -60),
-        (-10, -5)
-      ]
+enemyDelay :: Float
+enemyDelay = 0.5
+
+groupDelay :: Float
+groupDelay = 2.0
+
+waveDelay :: Float
+waveDelay = 5.0
+
+enemySpeed :: Float
+enemySpeed = 30
+

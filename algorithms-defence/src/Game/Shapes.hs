@@ -35,6 +35,131 @@ arrowhead =
       ]
 
 
+-- Black border
+mapBorder :: Picture
+mapBorder = color black $ rectangleWire mapWidth mapHeight
+
+-- Main tower: circle (head) + rectangle (base)
+mainTower :: Picture
+mainTower = translate towerX towerY $ pictures
+  [ color black $ translate 0 20 $ circleSolid 15
+  , color black $ rectangleSolid 10 30
+  ]
+  where
+    towerX = -mapWidth / 2 + 40
+    towerY = -20
+
+lambdaPath :: Picture
+lambdaPath = pictures
+  [ polygonalThickLine 4 [(-mapWidth/2 + 60, -10), (-50, -10)]
+  , polygonalThickLine 4 [(-mapWidth/2 + 60, -40), (-50, -40)]
+  , polygonalThickLine 4 (bezierInterp [(-50, -10), (0, 20), (80, 70), (mapWidth/2 - 30, 90), (mapWidth/2 - 2, 100)] 10)
+  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, 0), (80, 40), (mapWidth/2 - 30, 60), (mapWidth/2 - 2, 60)] 10)
+  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, -20), (80, -40), (mapWidth/2 - 30, -60), (mapWidth/2 - 2, -40)] 10)
+  , polygonalThickLine 4 (bezierInterp [(-50, -40), (0, -35), (80, -70), (mapWidth/2 - 30, -90), (mapWidth/2 - 2, -100)] 10)
+  ]
+
+-- Построение толстой линии (ленты) как полигона
+polygonalThickLine :: Float -> [Point] -> Picture
+polygonalThickLine thickness pts = pictures $ zipWith quad pts (tail pts)
+  where
+    halfT = thickness / 2
+
+    -- Для каждой пары точек делаем прямоугольник между ними
+    quad (x1, y1) (x2, y2) =
+      let dx = x2 - x1
+          dy = y2 - y1
+          len = sqrt (dx * dx + dy * dy)
+          -- нормализованный перпендикулярный вектор
+          (nx, ny) = (-dy / len, dx / len)
+          -- верхние и нижние точки ленты
+          p1 = (x1 + nx * halfT, y1 + ny * halfT)
+          p2 = (x1 - nx * halfT, y1 - ny * halfT)
+          p3 = (x2 - nx * halfT, y2 - ny * halfT)
+          p4 = (x2 + nx * halfT, y2 + ny * halfT)
+      in color black $ polygon [p1, p2, p3, p4]
+
+-- Quadratic Bezier interpolation
+bezierInterp :: [Point] -> Int -> [Point]
+bezierInterp pts n = [ bezierPoint pts (fromIntegral i / fromIntegral n) | i <- [0..n] ]
+
+bezierPoint :: [Point] -> Float -> Point
+bezierPoint [p] _ = p
+bezierPoint ps t = bezierPoint (zipWith (lerp t) ps (tail ps)) t
+
+lerp :: Float -> Point -> Point -> Point
+lerp t (x1,y1) (x2,y2) = (x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)
+
+-- Tower placement spots: Xs near the path
+towerSpots :: Picture
+towerSpots = color black $ pictures $ map drawX positions
+  where
+    drawX (x, y) = translate x y $ scale 0.15 0.15 $ text "x"
+    positions =
+      [ (-100, 20), (-100, -30)
+      , (-30, 30),  (-30, -50)
+      , (40, 60),   (40, -80)
+      , (100, 75),  (100, -90)
+      , (150, 50),  (150, -60),
+        (-10, -5)
+      ]
+
+drawArcherTowerRaw :: Picture
+drawArcherTowerRaw = scale 2 2 $
+  Pictures
+    [ color (makeColorI 150 75 0 255) $
+        rectangleSolid (cellSize * 0.3) (cellSize * 0.7)
+
+    , translate (cellSize * 0.05) (cellSize * 0.5) $
+        rotate (-15) $
+        Pictures
+          [ color black $
+              arc 270 90 (cellSize * 0.25)
+          , color black $
+              line [(-cellSize * 0.25, 0), (cellSize * 0.4, 0)]
+          , color black $
+              line [(0, -cellSize * 0.25), (0, cellSize * 0.25)]
+          , translate (cellSize * 0.4) 0 $
+              arrowhead
+          ]
+    ]
+
+
+drawCannonTowerRaw :: Picture
+drawCannonTowerRaw = scale 2 2 $
+  Pictures
+        [ color (greyN 0.3) $
+            rectangleSolid (cellSize * 0.4) (cellSize * 0.5)
+        , translate (cellSize * 0.35) 0 $
+            color black $
+            rectangleSolid (cellSize * 0.3) (cellSize * 0.1)
+        ]
+
+drawSniperTowerRaw :: Picture
+drawSniperTowerRaw = scale 2 2 $
+  Pictures
+        [ -- Tower body
+          color (makeColorI 80 80 140 255) $
+            rectangleSolid (cellSize * 0.2) (cellSize * 1)
+
+          -- Long sniper barrel (line)
+        , translate (cellSize * 0) (cellSize * 0.5) $
+            Pictures
+                [
+                color black $
+                    rectangleSolid (cellSize * 0.7) (cellSize * 0.05)
+
+                , color black $
+                    arc 0 180 (cellSize * 0.25)
+
+                , translate (cellSize * 0) (cellSize * 0.12) $
+                    color orange $
+                    circleSolid 1.9
+                ]
+        ]
+
+
+
 drawArcherTower :: (Int, Int) -> Float -> Picture
 drawArcherTower (col, row) s =
   translate (colToX col) (rowToY row) $
@@ -109,57 +234,3 @@ drawSniperTower (col, row) s =
                 ]
         ]
 
--- Black border
-mapBorder :: Picture
-mapBorder = color black $ rectangleWire mapWidth mapHeight
-
--- Main tower: circle (head) + rectangle (base)
-mainTower :: Picture
-mainTower = translate towerX towerY $ pictures
-  [ color black $ translate 0 20 $ circleSolid 15
-  , color black $ rectangleSolid 10 30
-  ]
-  where
-    towerX = -mapWidth / 2 + 40
-    towerY = -20
-
-lambdaPath :: Picture
-lambdaPath = pictures
-  [ polygonalThickLine 4 [(-mapWidth/2 + 60, -10), (-50, -10)]
-  , polygonalThickLine 4 [(-mapWidth/2 + 60, -40), (-50, -40)]
-  , polygonalThickLine 4 (bezierInterp [(-50, -10), (0, 20), (80, 70), (mapWidth/2 - 30, 90), (mapWidth/2 - 2, 100)] 10)
-  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, 0), (80, 40), (mapWidth/2 - 30, 60), (mapWidth/2 - 2, 60)] 10)
-  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, -20), (80, -40), (mapWidth/2 - 30, -60), (mapWidth/2 - 2, -40)] 10)
-  , polygonalThickLine 4 (bezierInterp [(-50, -40), (0, -35), (80, -70), (mapWidth/2 - 30, -90), (mapWidth/2 - 2, -100)] 10)
-  ]
-
--- Построение толстой линии (ленты) как полигона
-polygonalThickLine :: Float -> [Point] -> Picture
-polygonalThickLine thickness pts = pictures $ zipWith quad pts (tail pts)
-  where
-    halfT = thickness / 2
-
-    -- Для каждой пары точек делаем прямоугольник между ними
-    quad (x1, y1) (x2, y2) =
-      let dx = x2 - x1
-          dy = y2 - y1
-          len = sqrt (dx * dx + dy * dy)
-          -- нормализованный перпендикулярный вектор
-          (nx, ny) = (-dy / len, dx / len)
-          -- верхние и нижние точки ленты
-          p1 = (x1 + nx * halfT, y1 + ny * halfT)
-          p2 = (x1 - nx * halfT, y1 - ny * halfT)
-          p3 = (x2 - nx * halfT, y2 - ny * halfT)
-          p4 = (x2 + nx * halfT, y2 + ny * halfT)
-      in color black $ polygon [p1, p2, p3, p4]
-
--- Quadratic Bezier interpolation
-bezierInterp :: [Point] -> Int -> [Point]
-bezierInterp pts n = [ bezierPoint pts (fromIntegral i / fromIntegral n) | i <- [0..n] ]
-
-bezierPoint :: [Point] -> Float -> Point
-bezierPoint [p] _ = p
-bezierPoint ps t = bezierPoint (zipWith (lerp t) ps (tail ps)) t
-
-lerp :: Float -> Point -> Point -> Point
-lerp t (x1,y1) (x2,y2) = (x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)
