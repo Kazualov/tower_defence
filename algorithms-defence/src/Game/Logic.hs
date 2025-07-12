@@ -1,13 +1,17 @@
 -- Updated Game.Logic
 module Game.Logic where
 
-import Game.Enemies (moveEnemy)
+import Game.Enemies (moveEnemy, pathWaypoints)
 import Game.Types
+import Game.Config
 
 updateEnemies :: Float -> [Enemy] -> [Enemy]
 updateEnemies dt enemiesList =
-  let enemySpeed = 50
+  let enemySpeed = 30
       movedEnemies = map (moveEnemy (enemySpeed * dt)) enemiesList
-      -- Filter out enemies that have reached the end
-      activeEnemies = filter (\(Enemy _ _ waypointIndex) -> waypointIndex < length pathWaypoints) movedEnemies
+      activeEnemies = filter (\(Enemy _ _ waypointIndex path) ->
+        waypointIndex < length (pathWaypoints path)) movedEnemies
   in activeEnemies
+
+
+

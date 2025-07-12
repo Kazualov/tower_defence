@@ -7,7 +7,7 @@ import Game.Types -- contains GameState, Enemy, EnemyType definitions
 import Game.Render
 import Game.Logic -- contains updateEnemies :: Float -> [Enemy] -> [Enemy]
 import Game.Config
-import Game.Enemies (createEnemy) -- Import the helper function
+import Game.Enemies (createEnemy, moveEnemy) -- Import the helper function
 
 -- Main entry point
 main :: IO ()
@@ -26,9 +26,8 @@ initialState = GameState
   { towerHP = 100
   , doodleText = "Hello"
   , enemies =
-    [ createEnemy (EChar 'x')      -- Creates enemy at spawn with waypoint 0
-    , createEnemy (EInt 42)        -- Creates enemy at spawn with waypoint 0
-    , createEnemy (EString "List") -- Creates enemy at spawn with waypoint 0
+    [ createEnemy (EChar 'x') Upper
+    , createEnemy (EInt 4) Lower
     ]
   }
 
@@ -36,6 +35,6 @@ initialState = GameState
 handleInput :: Event -> GameState -> GameState
 handleInput _ gs = gs
 
--- Game update logic
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs = gs { enemies = updateEnemies dt (enemies gs) }
+

@@ -21,9 +21,6 @@ render gs = Pictures
       scale 0.2 0.2 $ color black $ text "You may draw your doodles here:"
       ]
       , drawEnemies (enemies gs)   -- enemies come from GameState now
-      , drawArcherTower (2, 1) 1.5
-      , drawCannonTower (4, 1) 1.5
-      , drawSniperTower (6, 2) 1.5
   ]
 
 drawEnemies :: [Enemy] -> Picture

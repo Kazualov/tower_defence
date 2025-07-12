@@ -1,6 +1,7 @@
 module Game.Shapes where
 
 import Graphics.Gloss
+
 import Game.Config
 
 
@@ -122,39 +123,43 @@ mainTower = translate towerX towerY $ pictures
     towerX = -mapWidth / 2 + 40
     towerY = -20
 
--- Hand-drawn-style path (left to forked Y)
 lambdaPath :: Picture
-lambdaPath = color black $ pictures
-  [ line [(-mapWidth/2 + 60, -10), (-50, -10)]                             -- stem
-  , line [(-mapWidth/2 + 60, -40), (-50, -40)]                             -- stem
-  , curveLine [(-50, -10), (0, 30), (80, 70), (mapWidth/2 - 30, 90)]       -- top branch
-  , curveLine [(0, -20), (0, 10), (80, 40), (mapWidth/2 - 30, 60)]         -- top branch
-  , curveLine [(0, -20), (0, -20), (80, -40), (mapWidth/2 - 30, -60)]      -- bottom branch
-  , curveLine [(-50, -40), (0, -35), (80, -70), (mapWidth/2 - 30, -90)]    -- bottom branch
+lambdaPath = pictures
+  [ polygonalThickLine 4 [(-mapWidth/2 + 60, -10), (-50, -10)]
+  , polygonalThickLine 4 [(-mapWidth/2 + 60, -40), (-50, -40)]
+  , polygonalThickLine 4 (bezierInterp [(-50, -10), (0, 20), (80, 70), (mapWidth/2 - 30, 90), (mapWidth/2 - 2, 100)] 10)
+  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, 0), (80, 40), (mapWidth/2 - 30, 60), (mapWidth/2 - 2, 60)] 10)
+  , polygonalThickLine 4 (bezierInterp [(0, -20), (0, -20), (80, -40), (mapWidth/2 - 30, -60), (mapWidth/2 - 2, -40)] 10)
+  , polygonalThickLine 4 (bezierInterp [(-50, -40), (0, -35), (80, -70), (mapWidth/2 - 30, -90), (mapWidth/2 - 2, -100)] 10)
   ]
 
--- Approximates a curved line with interpolation
-curveLine :: [Point] -> Picture
-curveLine pts = line $ bezierInterp pts 100
+-- Построение толстой линии (ленты) как полигона
+polygonalThickLine :: Float -> [Point] -> Picture
+polygonalThickLine thickness pts = pictures $ zipWith quad pts (tail pts)
+  where
+    halfT = thickness / 2
+
+    -- Для каждой пары точек делаем прямоугольник между ними
+    quad (x1, y1) (x2, y2) =
+      let dx = x2 - x1
+          dy = y2 - y1
+          len = sqrt (dx * dx + dy * dy)
+          -- нормализованный перпендикулярный вектор
+          (nx, ny) = (-dy / len, dx / len)
+          -- верхние и нижние точки ленты
+          p1 = (x1 + nx * halfT, y1 + ny * halfT)
+          p2 = (x1 - nx * halfT, y1 - ny * halfT)
+          p3 = (x2 - nx * halfT, y2 - ny * halfT)
+          p4 = (x2 + nx * halfT, y2 + ny * halfT)
+      in color black $ polygon [p1, p2, p3, p4]
 
 -- Quadratic Bezier interpolation
 bezierInterp :: [Point] -> Int -> [Point]
-bezierInterp pts n = [ bezier pts (t / fromIntegral n) | t <- [0..fromIntegral n] ]
-  where
-    bezier [p] _ = p
-    bezier ps t = bezier (zipWith (interp t) ps (tail ps)) t
-    interp t (x1,y1) (x2,y2) = ((1 - t)*x1 + t*x2, (1 - t)*y1 + t*y2)
+bezierInterp pts n = [ bezierPoint pts (fromIntegral i / fromIntegral n) | i <- [0..n] ]
 
--- Tower placement spots: Xs near the path
-towerSpots :: Picture
-towerSpots = color black $ pictures $ map drawX positions
-  where
-    drawX (x, y) = translate x y $ scale 0.15 0.15 $ text "x"
-    positions =
-      [ (-100, 20), (-100, -30)
-      , (-30, 30),  (-30, -50)
-      , (40, 60),   (40, -80)
-      , (100, 75),  (100, -90)
-      , (150, 50),  (150, -60),
-        (-10, -5)
-      ]
+bezierPoint :: [Point] -> Float -> Point
+bezierPoint [p] _ = p
+bezierPoint ps t = bezierPoint (zipWith (lerp t) ps (tail ps)) t
+
+lerp :: Float -> Point -> Point -> Point
+lerp t (x1,y1) (x2,y2) = (x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)
