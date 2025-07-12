@@ -16,6 +16,9 @@ data Tower = Tower
 data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
 
+data GameStatus = Playing | Victory | Defeat
+  deriving (Show, Eq)
+
 
 data GameState = GameState
   { towerHP     :: Int
@@ -33,6 +36,7 @@ data GameState = GameState
   , towerSpots  :: [TowerSpot]
   , selectedTower :: TowerType
   , coins       :: Int
+  , gameStatus      :: GameStatus
   } deriving (Show)
 
 data EnemyType = EChar Char | EInt Int | EString String

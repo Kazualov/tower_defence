@@ -28,6 +28,8 @@ render gs = Pictures
       , renderWaveIndicator gs
       , renderCoins gs
       , renderTowerPrices
+      , renderGameOver gs
+      , renderTowerHP gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -114,3 +116,24 @@ renderTowerPrices =
             Nothing -> Blank
       in Pictures [textPic, coinPic]
 
+
+renderGameOver :: GameState -> Picture
+renderGameOver gs = case gameStatus gs of
+  Victory -> centerMessage "🎉 Victory! You defended all waves!"
+  Defeat  -> centerMessage "💀 Defeat! Enemies breached your tower!"
+  _       -> Blank
+  where
+    centerMessage msg =
+      translate (-200) 140 $
+        scale 0.2 0.2 $
+          color red $
+            text msg
+
+
+renderTowerHP :: GameState -> Picture
+renderTowerHP gs =
+  translate (-fromIntegral windowWidth / 2 + 10)
+            (fromIntegral windowHeight / 2 - 60) $
+    scale 0.15 0.15 $
+    color black $
+    text ("Tower HP: " ++ show (towerHP gs))

@@ -45,6 +45,7 @@ initialState = GameState
   , groupSpawnTimer = 0
   , wavePauseTimer = 0
   , coins = 100
+  , gameStatus = Playing
   }
 
 handleInput :: Event -> GameState -> GameState
@@ -79,21 +80,33 @@ tryPlaceTower click gs =
 
 
 updateGame :: Float -> GameState -> GameState
-updateGame dt gs =
-  let gs1 = updateWaveSystem dt gs
-      movedEnemies = updateEnemies dt (enemies gs1)
-      (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) movedEnemies
-      -- Split alive and dead enemies
-      (aliveEnemies, deadEnemies) = partition (\e -> health e > 0) damagedEnemies
-      -- Gain coins for each dead enemy
-      coinsEarned = length deadEnemies * coinRewardPerKill
+updateGame dt gs
+  | gameStatus gs /= Playing = gs  -- Stop if game ended
+  | otherwise =
+      let gs1 = updateWaveSystem dt gs
+          (stillOnMap, reachedTower) = updateEnemies dt (enemies gs1)
+          hpLoss = (length reachedTower * 40)
+          newHP = towerHP gs1 - hpLoss
 
-      cooledTowers = updateTowersCooldown dt updatedTowers
-  in gs1
-      { enemies = aliveEnemies
-      , towers = cooledTowers
-      , coins = coins gs1 + coinsEarned  -- Update coins
-      }
+          (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) stillOnMap
+          (aliveEnemies, coinGain) = gainCoinsOnKills 5 damagedEnemies
+          cooledTowers = updateTowersCooldown dt updatedTowers
+
+          newStatus
+            | newHP <= 0 = Defeat
+            | null aliveEnemies
+              && null (waveQueue gs1)
+              && currentGroup gs1 == Nothing
+              && currentWave gs1 == length generateWaves - 1
+              = Victory
+            | otherwise = Playing
+
+      in gs1 { enemies    = aliveEnemies
+             , towers     = cooledTowers
+             , towerHP    = newHP
+             , coins      = coins gs1 + coinGain
+             , gameStatus = newStatus
+             }
 
 
 

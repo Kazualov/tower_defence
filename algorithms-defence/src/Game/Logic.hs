@@ -90,12 +90,13 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
       sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRangeFor (towerType tower)
 
 
-updateEnemies :: Float -> [Enemy] -> [Enemy]
+updateEnemies :: Float -> [Enemy] -> ([Enemy], [Enemy])
 updateEnemies dt enemiesList =
   let movedEnemies = map (moveEnemy (enemySpeed * dt)) enemiesList
-      activeEnemies = filter (\(Enemy _ _ waypointIndex path _) ->
-        waypointIndex < length (pathWaypoints path)) movedEnemies
-  in activeEnemies
+      (reached, active) = partition (\(Enemy _ _ waypointIndex path _) ->
+        waypointIndex >= length (pathWaypoints path)) movedEnemies
+  in (active, reached)
+
 
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
