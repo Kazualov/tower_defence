@@ -20,7 +20,7 @@ cooldownFor Sniper = 2.0
 
 towerDamageFor :: TowerType -> Int
 towerDamageFor Archer = 20
-towerDamageFor Cannon = 40
+towerDamageFor Cannon = 10
 towerDamageFor Sniper = 80
 
 towerRangeFor :: TowerType -> Float
@@ -73,15 +73,20 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
 
       in case chosenTarget of
            Just target ->
-             let updatedEnemies = map (damageIfTarget target dmg) es
+             let updatedEnemies = map (damageIfTarget tower target dmg) es
                  updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
              in (updatedTarget, updatedEnemies)
            Nothing -> (Nothing, es)
 
     -- Apply damage only to selected target
-    damageIfTarget :: Enemy -> Int -> Enemy -> Enemy
-    damageIfTarget target dmg enemy
-      | enemyPosition enemy == enemyPosition target = enemy { health = health enemy - dmg }
+    damageIfTarget :: Tower -> Enemy -> Int -> Enemy -> Enemy
+    damageIfTarget tower target dmg enemy
+      | towerType tower == Cannon =
+          if distance (enemyPosition target) (enemyPosition enemy) <= blastRadius
+          then enemy { health = health enemy - dmg }
+          else enemy
+      | enemyPosition enemy == enemyPosition target =
+          enemy { health = health enemy - dmg }
       | otherwise = enemy
 
     -- Check if enemy is in range of tower
@@ -96,6 +101,9 @@ updateEnemies dt enemiesList =
       (reached, active) = partition (\(Enemy _ _ waypointIndex path _) ->
         waypointIndex >= length (pathWaypoints path)) movedEnemies
   in (active, reached)
+
+distance :: Position -> Position -> Float
+distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
 
 updateWaveSystem :: Float -> GameState -> GameState

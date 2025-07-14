@@ -22,6 +22,10 @@ mapWidth, mapHeight :: Float
 mapWidth = 800
 mapHeight = 400
 
+-- Radius of area attacking by cannon
+blastRadius :: Float
+blastRadius = 30
+
 -- Window dimensions (slightly larger)
 windowWidth, windowHeight :: Int
 windowWidth = 1000

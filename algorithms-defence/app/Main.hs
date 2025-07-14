@@ -46,15 +46,39 @@ initialState = GameState
   , wavePauseTimer = 0
   , coins = 100
   , gameStatus = Playing
+  , isPaused = False
+  , showPauseMenu = False
   }
 
 handleInput :: Event -> GameState -> GameState
 handleInput (EventKey (Char '1') Down _ _) gs = gs { selectedTower = Archer }
 handleInput (EventKey (Char '2') Down _ _) gs = gs { selectedTower = Cannon }
 handleInput (EventKey (Char '3') Down _ _) gs = gs { selectedTower = Sniper }
+handleInput (EventKey (Char 'p') Down _ _) gs =
+  gs { isPaused = not (isPaused gs), showPauseMenu = not (isPaused gs) }
 handleInput (EventKey (MouseButton LeftButton) Up _ clickPos) gs =
-  tryPlaceTower clickPos gs
+  handleClick clickPos gs
 handleInput _ gs = gs
+
+
+
+handleClick :: (Float, Float) -> GameState -> GameState
+handleClick (x, y) gs
+  | insideRect (x, y) pauseButtonPos pauseButtonSize =
+      gs { isPaused = True, showPauseMenu = True }
+
+  | showPauseMenu gs && insideRect (x, y) resumeButtonPos menuButtonSize =
+      gs { isPaused = False, showPauseMenu = False }
+
+  | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
+      gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
+
+  | otherwise = tryPlaceTower (x, y) gs
+
+insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
+insideRect (mx, my) (cx, cy) (w, h) =
+  abs (mx - cx) <= w / 2 && abs (my - cy) <= h / 2
+
 
 -- updateGame :: Float -> GameState -> GameState
 -- updateGame dt gs = gs { enemies = updateEnemies dt (enemies gs) }
@@ -82,6 +106,7 @@ tryPlaceTower click gs =
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs
   | gameStatus gs /= Playing = gs  -- Stop if game ended
+  | isPaused gs              = gs
   | otherwise =
       let gs1 = updateWaveSystem dt gs
           (stillOnMap, reachedTower) = updateEnemies dt (enemies gs1)

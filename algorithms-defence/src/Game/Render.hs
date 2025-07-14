@@ -30,6 +30,9 @@ render gs = Pictures
       , renderTowerPrices
       , renderGameOver gs
       , renderTowerHP gs
+      , renderPause (isPaused gs)
+      , renderPauseButton
+      , renderPauseMenu gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -70,7 +73,7 @@ renderWaveIndicator gs =
 
 renderCoins :: GameState -> Picture
 renderCoins gs =
-  translate (fromIntegral windowWidth / 2 - 150)
+  translate (fromIntegral windowWidth / 2 - 250)
             (fromIntegral windowHeight / 2 - 30) $
     Pictures
       [ -- Draw the coin icon (yellow circle)
@@ -89,7 +92,7 @@ renderCoins gs =
 
 renderTowerPrices :: Picture
 renderTowerPrices =
-  translate (fromIntegral windowWidth / 2 - 150)
+  translate (fromIntegral windowWidth / 2 - 250)
             (fromIntegral windowHeight / 2 - 55) $
     Pictures $
       zipWith drawLine [0..] linesOfText
@@ -137,3 +140,65 @@ renderTowerHP gs =
     scale 0.15 0.15 $
     color black $
     text ("Tower HP: " ++ show (towerHP gs))
+
+renderPause :: Bool -> Picture
+renderPause True =
+  translate (-120) 0 $
+    scale 0.3 0.3 $
+      color red $
+        text "⏸ PAUSED"
+renderPause False = Blank
+
+
+pauseButtonPos :: (Float, Float)
+pauseButtonPos = (fromIntegral windowWidth / 2 - 60, fromIntegral windowHeight / 2 - 30)
+
+pauseButtonSize :: (Float, Float)
+pauseButtonSize = (100, 30)  -- width, height
+
+resumeButtonPos, quitButtonPos :: (Float, Float)
+resumeButtonPos = (0, 30)
+quitButtonPos   = (0, -30)
+
+menuButtonSize :: (Float, Float)
+menuButtonSize = (180, 40)
+
+renderPauseButton :: Picture
+renderPauseButton =
+  translate x y $
+    Pictures
+      [ color (greyN 0.8) $ rectangleSolid w h
+      , color black $
+          translate (-w/2 + 10) (-h/4) $
+            scale 0.1 0.1 $
+              text "Pause"
+      ]
+  where (x, y) = pauseButtonPos
+        (w, h) = pauseButtonSize
+
+renderPauseMenu :: GameState -> Picture
+renderPauseMenu gs
+  | not (showPauseMenu gs) = Blank
+  | otherwise = translate 0 0 $
+      Pictures
+        [ color (makeColor 1 1 1 0.9) $ rectangleSolid 400 300
+        , color black $
+            translate (-140) 100 $
+              scale 0.2 0.2 $
+                text "Game Paused"
+        , drawMenuButton resumeButtonPos "Resume"
+        , drawMenuButton quitButtonPos   "Quit"
+        ]
+  where
+    drawMenuButton :: (Float, Float) -> String -> Picture
+    drawMenuButton (bx, by) label =
+      translate bx by $
+        Pictures
+          [ color (light blue) $ rectangleSolid w h
+          , color black $
+              translate (-w/2 + 15) (-h/4) $
+                scale 0.12 0.12 $
+                  text label
+          ]
+      where (w, h) = menuButtonSize
+

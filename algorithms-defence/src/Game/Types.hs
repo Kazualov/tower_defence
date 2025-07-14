@@ -37,6 +37,8 @@ data GameState = GameState
   , selectedTower :: TowerType
   , coins       :: Int
   , gameStatus      :: GameStatus
+  , isPaused    :: Bool
+  , showPauseMenu :: Bool
   } deriving (Show)
 
 data EnemyType = EChar Char | EInt Int | EString String
