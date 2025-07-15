@@ -211,9 +211,8 @@ renderIntro t = Pictures $ introParts t
 
 introParts :: Float -> [Picture]
 introParts t =
-  [ if t > 0 then fadeIn (t / 1.5) $ centerText 0 "Lambda Defense" 0.3 else Blank
-  , if t > 2 then fadeIn ((t - 2) / 1.5) $ centerText (-60) "Innopolis Edition" 0.2 else Blank
-  , if t > 4 then fadeIn ((t - 4) / 1.5) $ centerText (-120) "Press SPACE to skip..." 0.15 else Blank
+  [ if t > 0 then fadeIn (t / 1.5) $ centerText 0 "Algorithms Defense" 0.3 else Blank
+  , if t > 2 then fadeIn ((t - 2) / 1.5) $ centerText (-60) "Press SPACE to skip..." 0.15 else Blank
   ]
 
 fadeIn :: Float -> Picture -> Picture
