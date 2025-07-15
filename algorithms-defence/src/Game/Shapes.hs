@@ -4,7 +4,6 @@ import Graphics.Gloss
 
 import Game.Config
 
-
 -- White background rectangle
 paperTexture :: Picture
 paperTexture = color white $ rectangleSolid mapWidth mapHeight
@@ -59,7 +58,7 @@ lambdaPath = pictures
   , polygonalThickLine 4 (bezierInterp [(-50, -40), (0, -35), (80, -70), (mapWidth/2 - 30, -90), (mapWidth/2 - 2, -100)] 10)
   ]
 
--- Построение толстой линии (ленты) как полигона
+-- Thick line
 polygonalThickLine :: Float -> [Point] -> Picture
 polygonalThickLine thickness pts = pictures $ zipWith quad pts (tail pts)
   where

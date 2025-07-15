@@ -1,4 +1,3 @@
--- Updated Game.Types
 module Game.Types where
 
 type Position = (Float, Float)

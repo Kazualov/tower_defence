@@ -2,13 +2,13 @@ module Main where
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
+import Data.List (find)
 
-import Game.Types -- contains GameState, Enemy, EnemyType definitions
+import Game.Types
 import Game.Render
-import Game.Logic -- contains updateEnemies :: Float -> [Enemy] -> [Enemy]
+import Game.Logic
 import Game.Config
-import Game.Enemies -- Import the helper function
-import Data.List (find, partition)
+import Game.Enemies
 
 
 -- Main entry point
@@ -28,8 +28,8 @@ initialState = GameState
   { towerHP = 100
   , doodleText = "Hello"
   , enemies = []
-  , towers = []  -- no towers at start
-  , towerSpots =  -- same positions used by drawXs in Game.Shapes
+  , towers = []
+  , towerSpots =
       [ (-275, 10), (-275, -70)
       , (-175, 10),  (-175, -70)
       , (-75, 10),   (-75, -70)
@@ -79,10 +79,6 @@ insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
 insideRect (mx, my) (cx, cy) (w, h) =
   abs (mx - cx) <= w / 2 && abs (my - cy) <= h / 2
 
-
--- updateGame :: Float -> GameState -> GameState
--- updateGame dt gs = gs { enemies = updateEnemies dt (enemies gs) }
-
 tryPlaceTower :: (Float, Float) -> GameState -> GameState
 tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
@@ -96,8 +92,8 @@ tryPlaceTower click gs =
                  , towerSpots = remainingSpots
                  , coins = coins gs - cost
                  }
-         else gs  -- Not enough coins: do nothing
-    Nothing -> gs  -- No valid spot clicked
+         else gs
+    Nothing -> gs
   where
     isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
@@ -105,7 +101,7 @@ tryPlaceTower click gs =
 
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs
-  | gameStatus gs /= Playing = gs  -- Stop if game ended
+  | gameStatus gs /= Playing = gs
   | isPaused gs              = gs
   | otherwise =
       let gs1 = updateWaveSystem dt gs

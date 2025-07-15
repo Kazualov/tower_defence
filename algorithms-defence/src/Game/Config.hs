@@ -1,8 +1,6 @@
 module Game.Config where
 
-
 import Game.Types
-import Graphics.Gloss
 
 
 coinRewardPerKill :: Int
@@ -26,14 +24,14 @@ mapHeight = 400
 blastRadius :: Float
 blastRadius = 30
 
--- Window dimensions (slightly larger)
+-- Window dimensions
 windowWidth, windowHeight :: Int
 windowWidth = 1000
 windowHeight = 600
 
 -- Offsets
 mapOffsetY :: Float
-mapOffsetY = -20 -- so that text is ~5 px above
+mapOffsetY = -20
 
 textAboveMapY :: Float
 textAboveMapY = mapHeight / 2 + 50
@@ -42,11 +40,11 @@ textAboveMapY = mapHeight / 2 + 50
 mainTowerPos :: (Float, Float)
 mainTowerPos = (-mapWidth / 2 + 40, -45)
 
--- Стартовая точка верхней ветки
+-- The start of the top branch
 topPathStart :: Position
 topPathStart = (mapWidth / 2 - 30, 45)
 
--- Стартовая точка нижней ветки -- todo
+-- The start of the botton branch
 bottomPathStart :: Position
 bottomPathStart = (mapWidth / 2 - 30, -90)
 

@@ -3,9 +3,7 @@ module Game.Enemies where
 import Graphics.Gloss
 import Game.Types
 import Game.Config
-import qualified Game.Types as Game
 
--- Теперь createEnemy принимает путь явно
 createEnemy :: EnemyType -> Game.Types.Path -> Enemy
 createEnemy etype path =
   let spawnPoint = case path of
@@ -66,8 +64,8 @@ moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path hp)
 generateWaves :: [[ [Enemy] ]]
 generateWaves =
   [ [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
-    , [ createEnemy (EInt 1) Lower | _ <- [1..4] ]
-    , [ createEnemy (EString "a") Upper | _ <- [1..3] ]
+    , [ createEnemy (EInt 1) Lower | _ <- [1..5] ]
+    , [ createEnemy (EString "Sanya hello") Upper | _ <- [1..3] ]
     ]
   , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
     , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]
