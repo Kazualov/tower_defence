@@ -1,4 +1,7 @@
-module Game.Shop (renderShopMenu) where
+module Game.Shop (
+  renderShopMenu,
+  shopButtonRects
+) where
 
 import Graphics.Gloss
 import Game.Types
@@ -22,6 +25,17 @@ renderShopMenu :: GameState -> Picture
 renderShopMenu gs = 
   translate 0 startY $
     Pictures $ zipWith (drawTowerButton (selectedTower gs)) [0..] [Archer, Cannon, Sniper]
+
+-- Tower buttons in left-to-right order
+towerTypes :: [TowerType]
+towerTypes = [Archer, Cannon, Sniper]
+
+-- Rectangle centers for each shop button (used for click detection)
+shopButtonRects :: [(TowerType, (Float, Float), (Float, Float))]
+shopButtonRects =
+  [ (ttype, (startX + fromIntegral i * buttonSpacing, startY), (buttonWidth, buttonHeight))
+  | (i, ttype) <- zip [0..] towerTypes
+  ]
 
 drawTowerButton :: TowerType -> Int -> TowerType -> Picture
 drawTowerButton selected idx ttype =

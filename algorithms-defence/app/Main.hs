@@ -3,6 +3,7 @@ module Main where
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 
+import Game.Shop (shopButtonRects)
 import Game.Types -- contains GameState, Enemy, EnemyType definitions
 import Game.Render
 import Game.Logic -- contains updateEnemies :: Float -> [Enemy] -> [Enemy]
@@ -74,14 +75,21 @@ handleClick (x, y) gs
   | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
       gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
 
-  -- Shop button clicked (below map)
-  | y <= shopButtonMaxY && y >= shopButtonMinY =
-      case towerAtClick x of
-        Just ttype -> gs { selectedTower = ttype }
-        Nothing    -> gs
+  -- Shop button clicked
+  | Just selected <- clickedTower (x, y) = gs { selectedTower = selected }
 
   -- Otherwise try placing tower
   | otherwise = tryPlaceTower (x, y) gs
+
+
+clickedTower :: (Float, Float) -> Maybe TowerType
+clickedTower (mx, my) =
+  case filter (\(_, (cx, cy), (w, h)) ->
+                 abs (mx - cx) <= w / 2 && abs (my - cy) <= h / 2
+              ) shopButtonRects of
+    ((ttype, _, _):_) -> Just ttype
+    _ -> Nothing
+
 
 
 insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
