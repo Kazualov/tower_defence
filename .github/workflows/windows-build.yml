@@ -3,8 +3,6 @@ name: Build Windows Executable
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   build:
@@ -35,5 +33,5 @@ jobs:
       - name: Upload .exe artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: algorithms-defence
           path: .stack-work/install/**/bin/*.exe
