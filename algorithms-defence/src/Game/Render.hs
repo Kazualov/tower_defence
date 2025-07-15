@@ -10,27 +10,32 @@ import Game.Logic ()
 import Game.Types
 
 render :: GameState -> Picture
-render gs = Pictures
-  [ -- Centered map group
+render gs = case gameStatus gs of
+  Intro t -> renderIntro t
+  _       -> renderGame gs
+
+renderGame :: GameState -> Picture
+renderGame gs = Pictures
+  [ -- (unchanged: full game scene below)
     translate 0 mapOffsetY $ pictures
       [ mapBorder
       , lambdaPath
-      , drawTowerSpots (towerSpots gs)  -- updated: draws only unoccupied Xs
+      , drawTowerSpots (towerSpots gs)
       , mainTower
       , translate (-(mapWidth/2) + 0) (textAboveMapY + mapOffsetY) $
-      scale 0.2 0.2 $ color black $ text "You may draw your doodles here:"
+        scale 0.2 0.2 $ color black $ text "You may draw your doodles here:"
       ]
-      , drawEnemies (enemies gs)   -- enemies come from GameState now
-      , drawPlacedTowers (towers gs)
-      , renderWaveIndicator gs
-      , renderCoins gs
-      , renderTowerPrices
-      , renderGameOver gs
-      , renderTowerHP gs
-      , renderPause (isPaused gs)
-      , renderPauseButton
-      , renderPauseMenu gs
-      , renderShopMenu gs
+  , drawEnemies (enemies gs)
+  , drawPlacedTowers (towers gs)
+  , renderWaveIndicator gs
+  , renderCoins gs
+  , renderTowerPrices
+  , renderGameOver gs
+  , renderTowerHP gs
+  , renderPause (isPaused gs)
+  , renderPauseButton
+  , renderPauseMenu gs
+  , renderShopMenu gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -71,8 +76,8 @@ renderWaveIndicator gs =
 
 renderCoins :: GameState -> Picture
 renderCoins gs =
-  translate (fromIntegral windowWidth / 2 - 250)
-            (fromIntegral windowHeight / 2 - 550) $
+  translate (-fromIntegral windowWidth / 2 + 10)
+            (fromIntegral windowHeight / 2 - 90) $
     Pictures
       [ -- Draw the coin icon (yellow circle)
         translate 113 8 $
@@ -201,6 +206,21 @@ renderPauseMenu gs
           ]
       where (w, h) = menuButtonSize
 
+renderIntro :: Float -> Picture
+renderIntro t = Pictures $ introParts t
+
+introParts :: Float -> [Picture]
+introParts t =
+  [ if t > 0 then fadeIn (t / 1.5) $ centerText 0 "Lambda Defense" 0.3 else Blank
+  , if t > 2 then fadeIn ((t - 2) / 1.5) $ centerText (-60) "Innopolis Edition" 0.2 else Blank
+  , if t > 4 then fadeIn ((t - 4) / 1.5) $ centerText (-120) "Press SPACE to skip..." 0.15 else Blank
+  ]
+
+fadeIn :: Float -> Picture -> Picture
+fadeIn alpha pic = Color (makeColor 0 0 0 (min 1 alpha)) pic
+
+centerText :: Float -> String -> Float -> Picture
+centerText y msg s = Translate (-200) y $ Scale s s $ Text msg
 
       
 
