@@ -4,6 +4,7 @@ module Game.Shop (
 ) where
 
 import Graphics.Gloss
+import Game.Shapes (drawArcherTowerRaw, drawCannonTowerRaw, drawSniperTowerRaw)
 import Game.Types
 import Game.Config
 
@@ -44,16 +45,46 @@ drawTowerButton selected idx ttype =
       [ -- background
         color (if selected == ttype then light green else greyN 0.7) $
           rectangleSolid buttonWidth buttonHeight
+
+      -- full border of button
+      , color (if selected == ttype then red else black) $
+          rectangleWire (buttonWidth + 4) (buttonHeight + 4)
+
+      -- tower image + its frame
+      , translate 30 (buttonHeight / 2 - 20) $ drawMiniTower ttype
+
+      -- tower type label
       , color black $
-          translate (-buttonWidth / 2 + 10) (buttonHeight / 2 - 20) $
+          translate (-buttonWidth / 2 + 10) 35 $
             scale 0.1 0.1 $ text (show ttype)
+
+      -- tower cost
       , color black $
-          translate (-buttonWidth / 2 + 10) (buttonHeight / 2 - 40) $
+          translate (-buttonWidth / 2 + 10) (16) $
             scale 0.08 0.08 $ text ("Cost: " ++ show (towerCost ttype))
+
+      -- damage
       , color black $
-          translate (-buttonWidth / 2 + 10) (buttonHeight / 2 - 60) $
+          translate (-buttonWidth / 2 + 10) (0) $
             scale 0.08 0.08 $ text ("Dmg: " ++ show (towerDamageFor ttype))
+
+      -- cooldown
       , color black $
-          translate (-buttonWidth / 2 + 10) (buttonHeight / 2 - 80) $
+          translate (-buttonWidth / 2 + 10) (-15) $
             scale 0.08 0.08 $ text ("CD: " ++ show (cooldownFor ttype) ++ "s")
       ]
+
+
+
+-- Draws the small tower image + frame
+drawMiniTower :: TowerType -> Picture
+drawMiniTower ttype =
+  Pictures
+    [ scale 0.4 0.4 $ towerPic  -- Smaller version of the real tower
+    , color (greyN 0.3) $ rectangleWire 40 40  -- frame around the picture
+    ]
+  where
+    towerPic = case ttype of
+      Archer -> drawArcherTowerRaw
+      Cannon -> drawCannonTowerRaw
+      Sniper -> drawSniperTowerRaw
