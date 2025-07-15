@@ -2,6 +2,7 @@ module Game.Render where
 
 import Graphics.Gloss
 
+import Game.Shop (renderShopMenu)
 import Game.Config
 import Game.Shapes hiding (towerSpots)
 import Game.Enemies
@@ -21,10 +22,6 @@ render gs = Pictures
       ]
       , drawEnemies (enemies gs)   -- enemies come from GameState now
       , drawPlacedTowers (towers gs)
-      , translate (-mapWidth/2) (-mapHeight/2 - 50) $
-        scale 0.15 0.15 $
-        color black $
-        text ("Selected: " ++ show (selectedTower gs))
       , renderWaveIndicator gs
       , renderCoins gs
       , renderTowerPrices
@@ -33,6 +30,7 @@ render gs = Pictures
       , renderPause (isPaused gs)
       , renderPauseButton
       , renderPauseMenu gs
+      , renderShopMenu gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -74,7 +72,7 @@ renderWaveIndicator gs =
 renderCoins :: GameState -> Picture
 renderCoins gs =
   translate (fromIntegral windowWidth / 2 - 250)
-            (fromIntegral windowHeight / 2 - 30) $
+            (fromIntegral windowHeight / 2 - 550) $
     Pictures
       [ -- Draw the coin icon (yellow circle)
         translate 113 8 $
@@ -202,4 +200,7 @@ renderPauseMenu gs
                   text label
           ]
       where (w, h) = menuButtonSize
+
+
+      
 

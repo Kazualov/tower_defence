@@ -5,6 +5,7 @@ import Graphics.Gloss.Interface.Pure.Game
 import Data.List (find)
 
 import Game.Types
+import Game.Shop (shopButtonRects)
 import Game.Render
 import Game.Logic
 import Game.Config
@@ -64,16 +65,32 @@ handleInput _ gs = gs
 
 handleClick :: (Float, Float) -> GameState -> GameState
 handleClick (x, y) gs
+  -- Pause button clicked
   | insideRect (x, y) pauseButtonPos pauseButtonSize =
       gs { isPaused = True, showPauseMenu = True }
 
+  -- Resume/quit pause menu
   | showPauseMenu gs && insideRect (x, y) resumeButtonPos menuButtonSize =
       gs { isPaused = False, showPauseMenu = False }
-
   | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
       gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
 
+  -- Shop button clicked
+  | Just selected <- clickedTower (x, y) = gs { selectedTower = selected }
+
+  -- Otherwise try placing tower
   | otherwise = tryPlaceTower (x, y) gs
+
+
+clickedTower :: (Float, Float) -> Maybe TowerType
+clickedTower (mx, my) =
+  case filter (\(_, (cx, cy), (w, h)) ->
+                 abs (mx - cx) <= w / 2 && abs (my - cy) <= h / 2
+              ) shopButtonRects of
+    ((ttype, _, _):_) -> Just ttype
+    _ -> Nothing
+
+
 
 insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
 insideRect (mx, my) (cx, cy) (w, h) =

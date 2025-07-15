@@ -24,6 +24,7 @@ executable algorithms-defence
                      , Game.Types
                      , Game.Enemies
                      , Game.Logic
+                     , Game.Shop
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5,
                        gloss
