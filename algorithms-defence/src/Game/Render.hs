@@ -139,7 +139,8 @@ renderTowerHP gs =
             (fromIntegral windowHeight / 2 - 60) $
     scale 0.15 0.15 $
     color black $
-    text ("Tower HP: " ++ show (towerHP gs))
+    if towerHP gs < 0 then text ("Tower HP: 0")
+    else text ("Tower HP: " ++ show (towerHP gs))
 
 renderPause :: Bool -> Picture
 renderPause True =

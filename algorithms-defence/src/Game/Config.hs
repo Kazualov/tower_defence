@@ -73,7 +73,7 @@ lowerPathWaypoints =
   ]
 
 enemyDelay :: Float
-enemyDelay = 0.5
+enemyDelay = 1.0
 
 groupDelay :: Float
 groupDelay = 2.0
