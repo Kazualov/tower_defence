@@ -99,21 +99,21 @@ insideRect (mx, my) (cx, cy) (w, h) =
 tryPlaceTower :: (Float, Float) -> GameState -> GameState
 tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
-    Just spot ->
-      let cost = towerCost (selectedTower gs)
-      in if coins gs >= cost
-         then
-           let newTower = Tower (selectedTower gs) spot 0.0 Nothing
-               remainingSpots = filter (/= spot) (towerSpots gs)
-           in gs { towers = newTower : towers gs
-                 , towerSpots = remainingSpots
-                 , coins = coins gs - cost
-                 }
-         else gs
-    Nothing -> gs
-  where
-    isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
+    Just spot
+      | coins gs >= cost ->
+          let newTower        = Tower (selectedTower gs) spot 0.0 Nothing
+              remainingSpots = filter (/= spot) (towerSpots gs)
+          in gs { towers      = newTower : towers gs
+                , towerSpots  = remainingSpots
+                , coins       = coins gs - cost
+                }
+      | otherwise -> gs
+      where cost = towerCost (selectedTower gs)
 
+    Nothing -> gs
+
+    
+isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
 
 updateGame :: Float -> GameState -> GameState

@@ -47,18 +47,26 @@ moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path hp)
           dist = sqrt (dx * dx + dy * dy)
           waypointReached = dist < 5.0
           newWaypointIndex = if waypointReached then waypointIndex + 1 else waypointIndex
-          (nx, ny) =
-            if waypointReached && newWaypointIndex < length waypoints
-              then let (nextTx, nextTy) = waypoints !! newWaypointIndex
-                       nextDx = nextTx - x
-                       nextDy = nextTy - y
-                       nextDist = sqrt (nextDx * nextDx + nextDy * nextDy)
-                   in if nextDist < 1 then (x, y)
-                      else (x + speed * nextDx / nextDist, y + speed * nextDy / nextDist)
-              else if dist < 1 then (x, y)
-              else (x + speed * dx / dist, y + speed * dy / dist)
+
+          (nx, ny)
+            | waypointReached
+            , newWaypointIndex < length waypoints =
+                let (nextTx, nextTy) = waypoints !! newWaypointIndex
+                    nextDx = nextTx - x
+                    nextDy = nextTy - y
+                    nextDist = sqrt (nextDx * nextDx + nextDy * nextDy)
+                in if nextDist < 1
+                   then (x, y)
+                   else (x + speed * nextDx / nextDist, y + speed * nextDy / nextDist)
+
+            | dist < 1 = (x, y)
+
+            | otherwise = (x + speed * dx / dist, y + speed * dy / dist)
+
       in Enemy etype (nx, ny) newWaypointIndex path hp
-  where waypoints = pathWaypoints path
+  where
+    waypoints = pathWaypoints path
+
 
 -- Wave definitions using list comprehensions:
 generateWaves :: [[ [Enemy] ]]

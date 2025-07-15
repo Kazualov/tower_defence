@@ -99,16 +99,18 @@ handleWavePause dt gs@GameState{..} =
      else gs'
 
 startNextWave :: GameState -> GameState
-startNextWave gs@GameState{..} =
-  let nextWave = currentWave + 1
-  in if nextWave < length generateWaves
-     then gs { currentWave = nextWave
-             , waveQueue = generateWaves !! nextWave
-             , currentGroup = Nothing
-             , enemySpawnTimer = 0
-             , groupSpawnTimer = 0
-             }
-     else gs
+startNextWave gs@GameState{..}
+  | nextWave < length generateWaves = gs
+      { currentWave     = nextWave
+      , waveQueue       = generateWaves !! nextWave
+      , currentGroup    = Nothing
+      , enemySpawnTimer = 0
+      , groupSpawnTimer = 0
+      }
+  | otherwise = gs
+  where
+    nextWave = currentWave + 1
+
 
 handleGroupDelay :: Float -> GameState -> GameState
 handleGroupDelay dt gs@GameState{..}
@@ -123,25 +125,24 @@ handleGroupDelay dt gs@GameState{..}
 
 
 spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
-spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount =
-  let newEnemySpawnTimer = enemySpawnTimer - dt
-  in if newEnemySpawnTimer <= 0
-     then
-       if spawnedCount < length enemiesInGroup
-       then
-         let enemyToSpawn = enemiesInGroup !! spawnedCount
-             newEnemiesList = enemies ++ [enemyToSpawn]
-         in gs { enemies = newEnemiesList
-               , currentGroup = Just (enemiesInGroup, spawnedCount + 1)
-               , enemySpawnTimer = enemyDelay
-               }
-       else
-         gs { currentGroup = Nothing
-            , groupSpawnTimer = groupDelay
-            , enemySpawnTimer = 0
+spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
+  | newEnemySpawnTimer > 0 = gs { enemySpawnTimer = newEnemySpawnTimer }
+
+  | spawnedCount < length enemiesInGroup =
+      let enemyToSpawn   = enemiesInGroup !! spawnedCount
+          newEnemiesList = enemies ++ [enemyToSpawn]
+      in gs { enemies        = newEnemiesList
+            , currentGroup   = Just (enemiesInGroup, spawnedCount + 1)
+            , enemySpawnTimer = enemyDelay
             }
-     else
-       gs { enemySpawnTimer = newEnemySpawnTimer }
+
+  | otherwise = gs { currentGroup    = Nothing
+                   , groupSpawnTimer = groupDelay
+                   , enemySpawnTimer = 0
+                   }
+  where
+    newEnemySpawnTimer = enemySpawnTimer - dt
+
 
 
 
