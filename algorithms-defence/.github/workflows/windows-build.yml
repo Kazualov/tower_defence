@@ -1,0 +1,39 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell with Stack
+        uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: stack build --copy-bins
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: .stack-work/install/**/bin/*.exe
