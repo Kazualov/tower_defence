@@ -64,16 +64,25 @@ handleInput _ gs = gs
 
 handleClick :: (Float, Float) -> GameState -> GameState
 handleClick (x, y) gs
+  -- Pause button clicked
   | insideRect (x, y) pauseButtonPos pauseButtonSize =
       gs { isPaused = True, showPauseMenu = True }
 
+  -- Resume/quit pause menu
   | showPauseMenu gs && insideRect (x, y) resumeButtonPos menuButtonSize =
       gs { isPaused = False, showPauseMenu = False }
-
   | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
       gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
 
+  -- Shop button clicked (below map)
+  | y <= shopButtonMaxY && y >= shopButtonMinY =
+      case towerAtClick x of
+        Just ttype -> gs { selectedTower = ttype }
+        Nothing    -> gs
+
+  -- Otherwise try placing tower
   | otherwise = tryPlaceTower (x, y) gs
+
 
 insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
 insideRect (mx, my) (cx, cy) (w, h) =

@@ -8,28 +8,9 @@ module Game.Logic where
 import Game.Enemies
 import Game.Types
 import Game.Config
-import Data.List (mapAccumL, partition, find)
+import Data.List (partition, find)
 import Data.Maybe (listToMaybe)
 
-
-cooldownFor :: TowerType -> Float
-cooldownFor Archer = 0.5
-cooldownFor Cannon = 1.0
-cooldownFor Sniper = 2.0
-
-
-towerDamageFor :: TowerType -> Int
-towerDamageFor Archer = 20
-towerDamageFor Cannon = 10
-towerDamageFor Sniper = 80
-
-towerRangeFor :: TowerType -> Float
-towerRangeFor Archer = 150  -- radius in pixels
-towerRangeFor Cannon = 100
-towerRangeFor Sniper = 250
-
-towerCooldownDuration :: Float
-towerCooldownDuration = 1.0  -- 1 second
 
 updateTowersCooldown :: Float -> [Tower] -> [Tower]
 updateTowersCooldown dt = map updateTower

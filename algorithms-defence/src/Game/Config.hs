@@ -29,7 +29,7 @@ blastRadius = 30
 -- Window dimensions (slightly larger)
 windowWidth, windowHeight :: Int
 windowWidth = 1000
-windowHeight = 600
+windowHeight = 800
 
 -- Offsets
 mapOffsetY :: Float
@@ -88,3 +88,43 @@ towerCost :: TowerType -> Int
 towerCost Archer = 30
 towerCost Cannon = 50
 towerCost Sniper = 80
+
+cooldownFor :: TowerType -> Float
+cooldownFor Archer = 0.5
+cooldownFor Cannon = 1.0
+cooldownFor Sniper = 2.0
+
+
+towerDamageFor :: TowerType -> Int
+towerDamageFor Archer = 20
+towerDamageFor Cannon = 10
+towerDamageFor Sniper = 80
+
+towerRangeFor :: TowerType -> Float
+towerRangeFor Archer = 150  -- radius in pixels
+towerRangeFor Cannon = 100
+towerRangeFor Sniper = 250
+
+
+
+shopButtonMinY, shopButtonMaxY :: Float
+shopButtonMinY = -fromIntegral windowHeight / 2 + 40 - 50  -- shop y - half height
+shopButtonMaxY = -fromIntegral windowHeight / 2 + 40 + 50  -- shop y + half height
+
+shopButtonXOffsets :: [Float]
+shopButtonXOffsets = [startX + fromIntegral i * buttonSpacing | i <- [0..2]]
+  where
+    startX = -250
+    buttonSpacing = 100
+
+shopButtonWidth :: Float
+shopButtonWidth = 180
+
+towerAtClick :: Float -> Maybe TowerType
+towerAtClick mx =
+  case filter (\(i, x) -> abs (mx - x) <= shopButtonWidth / 2)
+              (zip [0..] shopButtonXOffsets) of
+    ((0, _):_) -> Just Archer
+    ((1, _):_) -> Just Cannon
+    ((2, _):_) -> Just Sniper
+    _          -> Nothing
