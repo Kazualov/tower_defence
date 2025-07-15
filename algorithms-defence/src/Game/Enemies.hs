@@ -65,7 +65,7 @@ generateWaves :: [[ [Enemy] ]]
 generateWaves =
   [ [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
     , [ createEnemy (EInt 1) Lower | _ <- [1..5] ]
-    , [ createEnemy (EString "Sanya hello") Upper | _ <- [1..3] ]
+    , [ createEnemy (EString "hello") Upper | _ <- [1..3] ]
     ]
   , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
     , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]

@@ -85,58 +85,64 @@ distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
-  -- 1. Wait for wave delay
-  | wavePauseTimer > 0 =
-      let newPause = max 0 (wavePauseTimer - dt)
-          gs' = gs { wavePauseTimer = newPause }
-      in if newPause == 0
-         then
-           let nextWave = currentWave + 1
-           in if nextWave < length generateWaves
-              then gs' { currentWave = nextWave
-                       , waveQueue = generateWaves !! nextWave
-                       , currentGroup = Nothing
-                       , enemySpawnTimer = 0
-                       , groupSpawnTimer = 0
-                       }
-              else gs'
-         else gs'
+  | wavePauseTimer > 0 = handleWavePause dt gs
+  | otherwise           = case currentGroup of
+      Nothing                   -> handleGroupDelay dt gs
+      Just (group, count)       -> spawnEnemiesFromGroup dt gs group count
 
-  -- 2. No current group, check if ready for next
-  | otherwise = case currentGroup of
+handleWavePause :: Float -> GameState -> GameState
+handleWavePause dt gs@GameState{..} =
+  let newPause = max 0 (wavePauseTimer - dt)
+      gs' = gs { wavePauseTimer = newPause }
+  in if newPause == 0
+     then startNextWave gs'
+     else gs'
 
-      Nothing ->
-        if groupSpawnTimer > 0
-        then gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
-        else case waveQueue of
-          [] ->
-            gs { wavePauseTimer = waveDelay }
-          (group:rest) ->
-            gs { currentGroup = Just (group, 0)
-               , waveQueue = rest
-               , enemySpawnTimer = 0
+startNextWave :: GameState -> GameState
+startNextWave gs@GameState{..} =
+  let nextWave = currentWave + 1
+  in if nextWave < length generateWaves
+     then gs { currentWave = nextWave
+             , waveQueue = generateWaves !! nextWave
+             , currentGroup = Nothing
+             , enemySpawnTimer = 0
+             , groupSpawnTimer = 0
+             }
+     else gs
+
+handleGroupDelay :: Float -> GameState -> GameState
+handleGroupDelay dt gs@GameState{..}
+  | groupSpawnTimer > 0 =
+      gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
+  | otherwise = case waveQueue of
+      [] -> gs { wavePauseTimer = waveDelay }
+      (group:rest) -> gs { currentGroup = Just (group, 0)
+                         , waveQueue = rest
+                         , enemySpawnTimer = 0
+                         }
+
+
+spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
+spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount =
+  let newEnemySpawnTimer = enemySpawnTimer - dt
+  in if newEnemySpawnTimer <= 0
+     then
+       if spawnedCount < length enemiesInGroup
+       then
+         let enemyToSpawn = enemiesInGroup !! spawnedCount
+             newEnemiesList = enemies ++ [enemyToSpawn]
+         in gs { enemies = newEnemiesList
+               , currentGroup = Just (enemiesInGroup, spawnedCount + 1)
+               , enemySpawnTimer = enemyDelay
                }
+       else
+         gs { currentGroup = Nothing
+            , groupSpawnTimer = groupDelay
+            , enemySpawnTimer = 0
+            }
+     else
+       gs { enemySpawnTimer = newEnemySpawnTimer }
 
-      -- 3. Currently spawning a group
-      Just (enemiesInGroup, spawnedCount) ->
-        let newEnemySpawnTimer = enemySpawnTimer - dt
-        in if newEnemySpawnTimer <= 0
-           then
-             if spawnedCount < length enemiesInGroup
-             then
-               let enemyToSpawn = enemiesInGroup !! spawnedCount
-                   newEnemiesList = enemies ++ [enemyToSpawn]
-               in gs { enemies = newEnemiesList
-                     , currentGroup = Just (enemiesInGroup, spawnedCount + 1)
-                     , enemySpawnTimer = enemyDelay
-                     }
-             else
-               gs { currentGroup = Nothing
-                  , groupSpawnTimer = groupDelay
-                  , enemySpawnTimer = 0
-                  }
-           else
-             gs { enemySpawnTimer = newEnemySpawnTimer }
 
 
 gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
