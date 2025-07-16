@@ -9,7 +9,7 @@ createEnemy etype path =
   let spawnPoint = case path of
         Upper -> head upperPathWaypoints
         Lower -> head lowerPathWaypoints
-  in Enemy etype spawnPoint 0 path 100
+  in Enemy etype spawnPoint 0 path (hpOf etype)
 
 drawEnemy :: Enemy -> Picture
 drawEnemy (Enemy etype (x, y) _ _ hp) =

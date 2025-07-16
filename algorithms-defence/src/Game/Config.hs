@@ -103,6 +103,11 @@ towerRangeFor Archer = 150  -- radius in pixels
 towerRangeFor Cannon = 100
 towerRangeFor Sniper = 250
 
+hpOf :: EnemyType -> Int
+hpOf (EChar _)   = 100
+hpOf (EInt _)    = 200
+hpOf (EString _) = 300
+
 
 
 shopButtonMinY, shopButtonMaxY :: Float
