@@ -15,7 +15,8 @@ data Tower = Tower
 data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
 
-data GameStatus = Playing | Victory | Defeat
+-- Intro Float - time from the start of the intro
+data GameStatus = Intro Float | Playing | Victory | Defeat
   deriving (Show, Eq)
 
 

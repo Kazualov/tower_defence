@@ -21,12 +21,13 @@ main = play
   initialState
   render
   handleInput
-  updateGame
+  update
 
  -- Initial game state
 initialState :: GameState
 initialState = GameState
-  { towerHP = 100
+  { gameStatus = Intro 0
+  , towerHP = 100
   , doodleText = "Hello"
   , enemies = []
   , towers = []
@@ -46,20 +47,34 @@ initialState = GameState
   , groupSpawnTimer = 0
   , wavePauseTimer = 0
   , coins = 100
-  , gameStatus = Playing
   , isPaused = False
   , showPauseMenu = False
   }
 
+    
 handleInput :: Event -> GameState -> GameState
+-- Intro skip logic
+handleInput (EventKey (SpecialKey KeySpace) Down _ _) gs =
+  case gameStatus gs of
+    Intro _ -> gs { gameStatus = Playing }
+    _       -> gs  -- fall through to other input
+
+-- Tower selection
 handleInput (EventKey (Char '1') Down _ _) gs = gs { selectedTower = Archer }
 handleInput (EventKey (Char '2') Down _ _) gs = gs { selectedTower = Cannon }
 handleInput (EventKey (Char '3') Down _ _) gs = gs { selectedTower = Sniper }
+
+-- Pause toggle
 handleInput (EventKey (Char 'p') Down _ _) gs =
   gs { isPaused = not (isPaused gs), showPauseMenu = not (isPaused gs) }
+
+-- Mouse click
 handleInput (EventKey (MouseButton LeftButton) Up _ clickPos) gs =
   handleClick clickPos gs
+
+-- Default fallback
 handleInput _ gs = gs
+
 
 
 
@@ -116,6 +131,11 @@ tryPlaceTower click gs =
 isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
 
+update :: Float -> GameState -> GameState
+update dt gs = case gameStatus gs of
+  Intro t -> gs { gameStatus = Intro (t + dt) }
+  _ -> updateGame dt gs
+  
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs
   | gameStatus gs /= Playing = gs

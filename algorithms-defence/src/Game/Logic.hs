@@ -144,8 +144,6 @@ spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
     newEnemySpawnTimer = enemySpawnTimer - dt
 
 
-
-
 gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
 gainCoinsOnKills coinReward enemies =
   let (alive, dead) = partition (\e -> health e > 0) enemies
