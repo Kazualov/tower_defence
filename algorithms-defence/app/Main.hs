@@ -63,7 +63,7 @@ handleInput _ gs = gs
 
 
 
-handleClick :: (Float, Float) -> GameState -> GameState
+handleClick :: Position -> GameState -> GameState
 handleClick (x, y) gs
   -- Pause button clicked
   | insideRect (x, y) pauseButtonPos pauseButtonSize =
