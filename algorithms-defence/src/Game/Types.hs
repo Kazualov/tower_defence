@@ -8,13 +8,17 @@ type Position = (Float, Float)
 
 type TowerSpot = (Float, Float)
 
+-- Modificator types
+data Modificator = Map | Pop | GarbageCollector
+  deriving (Show, Eq)
+
 data Tower = Tower
   { towerType     :: TowerType
   , towerPos      :: TowerSpot
   , towerCooldown :: Float  -- seconds remaining until next shot
   , towerTarget   :: Maybe Enemy
+  , towerMod      :: Maybe Modificator  -- NEW: optional modificator
   } deriving (Show, Eq)
-
 
 data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
@@ -25,7 +29,6 @@ data GameStatus = Intro Int Float  -- Now stores current image index and time
                 | Victory 
                 | Defeat
   deriving (Show, Eq)
-
 
 data GameState = GameState
   { towerHP     :: Int
@@ -46,14 +49,17 @@ data GameState = GameState
   , gameStatus  :: GameStatus
   , isPaused    :: Bool
   , showPauseMenu :: Bool
+  , selectedModificator :: Maybe Modificator
+  , selectedTowerForMod :: Maybe Tower 
   } deriving (Show)
 
 data EnemyType
   = EChar Char
   | EInt Int
   | EString String
-  | EList [EnemyType]     -- Linked List enemy: represents nested elements
-  | EMap [(String, EnemyType)]  -- Map enemy: represents key-value structure
+  | EList [EnemyType]
+  | EMap [(String, EnemyType)]
+  | Boss
   deriving (Show, Eq)
 
 

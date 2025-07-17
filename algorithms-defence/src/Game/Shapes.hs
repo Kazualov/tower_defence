@@ -194,7 +194,6 @@ drawArcherTower (col, row) s =
     h = cellSize * 0.3
 
 
-
 drawCannonTower :: (Int, Int) -> Float -> Picture
 drawCannonTower (col, row) s =
   translate (colToX col) (rowToY row) $

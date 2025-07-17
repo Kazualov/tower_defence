@@ -14,7 +14,6 @@ updateTowersCooldown dt = map updateTower
     updateTower t = t { towerCooldown = max 0 (towerCooldown t - dt)
                       , towerTarget   = towerTarget t }
 
-
 applyTowerDamage :: [Tower] -> [Enemy] -> ([Tower], [Enemy])
 applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
   where
@@ -27,7 +26,6 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
                                  }
           in (resetTower : ts, newEnemies)
       | otherwise =
-          -- Check if target is still valid (alive & in range)
           let targetStillValid = case towerTarget tower of
                 Just target ->
                   target `elem` es && inRange tower (enemyPosition target) (towerPos tower)
@@ -35,27 +33,42 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
               tower' = if targetStillValid then tower else tower { towerTarget = Nothing }
           in (tower' : ts, es)
 
-    -- Each tower attacks only one enemy
     attackOneEnemy :: Tower -> [Enemy] -> (Maybe Enemy, [Enemy])
     attackOneEnemy tower es =
-      let dmg = towerDamageFor (towerType tower)
-          inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
+      let inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
           currentTarget = towerTarget tower
-
-          -- Prioritize sticking to the previous target if valid
           chosenTarget =
             case currentTarget of
               Just t  -> if t `elem` inRangeEnemies then Just t else listToMaybe inRangeEnemies
               Nothing -> listToMaybe inRangeEnemies
-
       in case chosenTarget of
-           Just target ->
-             let updatedEnemies = map (damageIfTarget tower target dmg) es
-                 updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
-             in (updatedTarget, updatedEnemies)
+           Just target -> applyModificatorAttack tower target es
            Nothing -> (Nothing, es)
 
-    -- Apply damage only to selected target
+    applyModificatorAttack :: Tower -> Enemy -> [Enemy] -> (Maybe Enemy, [Enemy])
+    applyModificatorAttack tower target es =
+      case towerMod tower of
+        Just Pop -> 
+          let updatedEnemies = map (\e -> if enemyPosition e == enemyPosition target 
+                                         then e { health = health e - 99999 }
+                                         else e) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+        
+        Just Map -> 
+          let dmg = towerDamageForMap (towerType tower)
+              updatedEnemies = map (\e -> if distance (enemyPosition target) (enemyPosition e) <= mapModRadius
+                                         then e { health = health e - dmg }
+                                         else e) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+        
+        _ -> 
+          let dmg = towerDamageFor (towerType tower)
+              updatedEnemies = map (damageIfTarget tower target dmg) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+
     damageIfTarget :: Tower -> Enemy -> Int -> Enemy -> Enemy
     damageIfTarget tower target dmg enemy
       | towerType tower == Cannon =
@@ -66,15 +79,23 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
           enemy { health = health enemy - dmg }
       | otherwise = enemy
 
-    -- Check if enemy is in range of tower
     inRange :: Tower -> Position -> Position -> Bool
     inRange tower (x1, y1) (x2, y2) =
       sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRangeFor (towerType tower)
 
+applyModificator :: Modificator -> Tower -> Tower
+applyModificator mod tower = tower { towerMod = Just mod }
+
+canApplyModificator :: Modificator -> Tower -> Bool
+canApplyModificator GarbageCollector _ = True
+canApplyModificator _ tower = towerMod tower == Nothing
+
+findTowerAt :: Position -> [Tower] -> Maybe Tower
+findTowerAt (x, y) towers = find (\t -> distance (towerPos t) (x, y) <= 25) towers
 
 updateEnemies :: Float -> [Enemy] -> ([Enemy], [Enemy])
 updateEnemies dt enemiesList =
-  let movedEnemies = map (moveEnemy (enemySpeed * dt)) enemiesList
+  let movedEnemies = map (moveEnemy dt) enemiesList
       (reached, active) = partition (\(Enemy _ _ waypointIndex path _) ->
         waypointIndex >= length (pathWaypoints path)) movedEnemies
   in (active, reached)
@@ -82,6 +103,47 @@ updateEnemies dt enemiesList =
 distance :: Position -> Position -> Float
 distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
+updateEnemyDamage :: [Enemy] -> Int
+updateEnemyDamage enemies =
+  sum $ map (\e -> if isBoss e then bossDamage else 40) enemies
+
+gainCoinsOnKillsWithBoss :: Int -> [Enemy] -> ([Enemy], Int, [Enemy])
+gainCoinsOnKillsWithBoss coinsPerKill enemies =
+  let (dead, alive) = partition (\e -> health e <= 0) enemies
+      bossChildren = concatMap (\e -> if isBoss e && health e <= 0 then spawnBossChildren e else []) dead
+      coinGain = length dead * coinsPerKill
+  in (alive, coinGain, bossChildren)
+
+handleGroupDelay :: Float -> GameState -> GameState
+handleGroupDelay dt gs@GameState{..}
+  | groupSpawnTimer > 0 =
+      gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
+  | otherwise = case waveQueue of
+      [] -> gs { wavePauseTimer = waveDelay }
+      (wave:rest) -> case wave of
+        [] -> gs { waveQueue = rest, wavePauseTimer = waveDelay }
+        (group:groups) -> gs { currentGroup = Just (group, 0)
+                             , waveQueue = groups : rest
+                             , enemySpawnTimer = 0
+                             }
+
+spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
+spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
+  | newEnemySpawnTimer > 0 = gs { enemySpawnTimer = newEnemySpawnTimer }
+  | spawnedCount < length enemiesInGroup =
+      let enemyToSpawn = enemiesInGroup !! spawnedCount
+          newEnemiesList = enemies ++ [enemyToSpawn]
+          newSpawnTimer = if isBoss enemyToSpawn then bossChildDelay else enemyDelay
+      in gs { enemies = newEnemiesList
+            , currentGroup = Just (enemiesInGroup, spawnedCount + 1)
+            , enemySpawnTimer = newSpawnTimer
+            }
+  | otherwise = gs { currentGroup = Nothing
+                   , groupSpawnTimer = groupDelay
+                   , enemySpawnTimer = 0
+                   }
+  where
+    newEnemySpawnTimer = enemySpawnTimer - dt
 
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
@@ -99,57 +161,22 @@ handleWavePause dt gs@GameState{..} =
      else gs'
 
 startNextWave :: GameState -> GameState
-startNextWave gs@GameState{..} =
-  let (newWave, newGen) = generateRandomWave (createWaveParams (currentWave + 1)) randomGen
-  in gs { waveQueue = waveQueue ++ [newWave]
-        , randomGen = newGen
-        , currentWave = currentWave + 1
-        }
-  where
-    createWaveParams n = WaveParams
-      { waveSize = 5 + n * 2
-      , groupCount = 1 + n `div` 3
-      , intensity = min 1.0 (0.2 + fromIntegral n * 0.1)
-      }
-
-
-handleGroupDelay :: Float -> GameState -> GameState
-handleGroupDelay dt gs@GameState{..}
-  | groupSpawnTimer > 0 =
-      gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
-  | otherwise = case waveQueue of
-      [] -> gs { wavePauseTimer = waveDelay }
-      (wave:restWaves) -> case wave of
-        [] -> gs { waveQueue = restWaves }  -- skip empty wave
-        (group:restGroups) -> gs { currentGroup = Just (group, 0)
-                                 , waveQueue = restGroups : restWaves
-                                 , enemySpawnTimer = 0
-                                 }
-
-
-
-spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
-spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
-  | newEnemySpawnTimer > 0 = gs { enemySpawnTimer = newEnemySpawnTimer }
-
-  | spawnedCount < length enemiesInGroup =
-      let enemyToSpawn   = enemiesInGroup !! spawnedCount
-          newEnemiesList = enemies ++ [enemyToSpawn]
-      in gs { enemies        = newEnemiesList
-            , currentGroup   = Just (enemiesInGroup, spawnedCount + 1)
-            , enemySpawnTimer = enemyDelay
+startNextWave gs@GameState{..}
+  | currentWave < 8 =  -- 8 for 9 random waves (0-based index)
+      let nextWave = currentWave + 1
+          (newWave, newGen) = generateRandomWave (createWaveParams nextWave) randomGen
+      in gs { currentWave = nextWave
+            , waveQueue = [newWave] ++ waveQueue
+            , currentGroup = Nothing
+            , enemySpawnTimer = 0
+            , groupSpawnTimer = 0
+            , randomGen = newGen
             }
-
-  | otherwise = gs { currentGroup    = Nothing
-                   , groupSpawnTimer = groupDelay
-                   , enemySpawnTimer = 0
-                   }
-  where
-    newEnemySpawnTimer = enemySpawnTimer - dt
-
-
-gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
-gainCoinsOnKills coinReward enemies =
-  let (alive, dead) = partition (\e -> health e > 0) enemies
-  in (alive, length dead * coinReward)
-
+  | currentWave == 8 =  -- Switch to boss wave
+      gs { currentWave = 9
+         , waveQueue = [[[createBoss Upper]]]
+         , currentGroup = Nothing
+         , enemySpawnTimer = 0
+         , groupSpawnTimer = 0
+         }
+  | otherwise = gs  -- No more waves after boss

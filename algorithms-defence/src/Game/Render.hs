@@ -21,7 +21,7 @@ render gs = case gameStatus gs of
 
 renderGame :: GameState -> Picture
 renderGame gs = Pictures
-  [ -- (unchanged: full game scene below)
+  [
     translate 0 mapOffsetY $ pictures
       [ mapBorder
       , lambdaPath
@@ -34,13 +34,13 @@ renderGame gs = Pictures
   , drawPlacedTowers (towers gs)
   , renderWaveIndicator gs
   , renderCoins gs
-  , renderTowerPrices
   , renderGameOver gs
   , renderTowerHP gs
   , renderPause (isPaused gs)
   , renderPauseButton
   , renderPauseMenu gs
   , renderShopMenu gs
+  , renderSelectedTowerIndicator gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -50,14 +50,51 @@ drawPlacedTowers :: [Tower] -> Picture
 drawPlacedTowers = pictures . map drawTowerAtScreen
 
 drawTowerAtScreen :: Tower -> Picture
-drawTowerAtScreen (Tower ttype pos _ _) =
+drawTowerAtScreen tower@(Tower ttype pos _ _ mod) =
   translate x y $
-    case ttype of
-      Archer -> drawArcherTowerRaw
-      Cannon -> drawCannonTowerRaw
-      Sniper -> drawSniperTowerRaw
+    Pictures
+      [ -- Base tower
+        case ttype of
+          Archer -> drawArcherTowerRaw
+          Cannon -> drawCannonTowerRaw
+          Sniper -> drawSniperTowerRaw
+      
+      -- Modificator indicator
+      , drawModificatorIndicator mod
+      ]
   where (x, y) = pos
 
+-- NEW: Draw modificator indicator on tower
+drawModificatorIndicator :: Maybe Modificator -> Picture
+drawModificatorIndicator Nothing = Blank
+drawModificatorIndicator (Just mod) =
+  translate 15 15 $
+    Pictures
+      [ color (modColor mod) $ thickCircle 8 3
+      , color black $ 
+          translate (-3) (-3) $
+            scale 0.08 0.08 $ text (modSymbol mod)
+      ]
+
+modColor :: Modificator -> Color
+modColor Map = yellow
+modColor Pop = red
+modColor GarbageCollector = green
+
+modSymbol :: Modificator -> String
+modSymbol Map = "M"
+modSymbol Pop = "P"
+modSymbol GarbageCollector = "G"
+
+renderSelectedTowerIndicator :: GameState -> Picture
+renderSelectedTowerIndicator gs =
+  case selectedTowerForMod gs of
+    Nothing -> Blank
+    Just tower ->
+      let (x, y) = towerPos tower
+      in translate x y $
+           color orange $
+             thickCircle 30 5
 
 -- Convert screen coords to grid cells
 xToCol :: Float -> Int
@@ -97,37 +134,6 @@ renderCoins gs =
       ]
 
 
-
-renderTowerPrices :: Picture
-renderTowerPrices =
-  translate (fromIntegral windowWidth / 2 - 250)
-            (fromIntegral windowHeight / 2 - 55) $
-    Pictures $
-      zipWith drawLine [0..] linesOfText
-  where
-    -- Each tuple: (line text, coin offset for the icon)
-    linesOfText =
-      [ ("Tower Prices:", Nothing)  -- No icon for the title
-      , ("Archer: " ++ show (towerCost Archer), Just 80)
-      , ("Cannon: " ++ show (towerCost Cannon), Just 80)
-      , ("Sniper: " ++ show (towerCost Sniper), Just 80)
-      ]
-
-    drawLine :: Int -> (String, Maybe Float) -> Picture
-    drawLine i (lineText, mIconOffset) =
-      let yOffset = -20 * fromIntegral i
-          textPic = translate 0 yOffset $
-                    scale 0.12 0.12 $
-                      color black $
-                        text lineText
-          coinPic = case mIconOffset of
-            Just x -> translate 95 (yOffset + 8) $
-                        color (makeColorI 255 215 0 255) $
-                          thickCircle 5 3
-            Nothing -> Blank
-      in Pictures [textPic, coinPic]
-
-
 renderGameOver :: GameState -> Picture
 renderGameOver gs = case gameStatus gs of
   Victory -> centerMessage "🎉 Victory! You defended all waves!"
@@ -139,7 +145,6 @@ renderGameOver gs = case gameStatus gs of
         scale 0.2 0.2 $
           color red $
             text msg
-
 
 renderTowerHP :: GameState -> Picture
 renderTowerHP gs =
@@ -157,7 +162,6 @@ renderPause True =
       color red $
         text "⏸ PAUSED"
 renderPause False = Blank
-
 
 pauseButtonPos :: (Float, Float)
 pauseButtonPos = (fromIntegral windowWidth / 2 - 60, fromIntegral windowHeight / 2 - 30)
@@ -219,7 +223,7 @@ renderIntro gs = case gameStatus gs of
                 else Blank
         images = introImages gs
     in Pictures
-        [ scale 0.5 0.5 $ translate (-150) (-100) image
+        [ scale 0.5 0.5 $ translate (-20) (-10) image
         ]
   _ -> Blank
 

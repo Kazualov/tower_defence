@@ -2,19 +2,18 @@ module Main where
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
-import Data.List (find)
+import Data.List (find, partition)
 import Graphics.Gloss.Juicy (loadJuicyJPG)
-
+import Data.Maybe (catMaybes)
 
 import Game.Types
-import Game.Shop (shopButtonRects)
-import Game.Render
+import Game.Shop
 import Game.Logic
+import Game.Render
 import Game.Config
 import Game.Enemies
 import System.Random
-import Data.Maybe (catMaybes)
-
+import Debug.Trace (trace)
 
 
 
@@ -35,9 +34,8 @@ main = do
     handleInput
     update
 
-
  -- Initial game state
-initialState :: [[[Enemy]]] -> StdGen -> [Picture]  -> GameState
+initialState :: [[[Enemy]]] -> StdGen -> [Picture] -> GameState
 initialState waves gen images = GameState
   { gameStatus = Intro 0 0
   , towerHP = 100
@@ -53,6 +51,7 @@ initialState waves gen images = GameState
       , (50, -20)
       ]
   , selectedTower = Archer
+  , selectedTowerForMod = Nothing  -- Add this line
   , currentWave = 0
   , waveQueue = waves
   , currentGroup = Nothing
@@ -64,9 +63,10 @@ initialState waves gen images = GameState
   , isPaused = False
   , showPauseMenu = False
   , introImages = images
+  , selectedModificator = Nothing
   }
 
-
+    
 handleInput :: Event -> GameState -> GameState
 
 -- Tower selection
@@ -106,6 +106,7 @@ handleInput _ gs = gs
 
 
 
+
 handleClick :: Position -> GameState -> GameState
 handleClick (x, y) gs
   -- Pause button clicked
@@ -118,12 +119,34 @@ handleClick (x, y) gs
   | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
       gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
 
-  -- Shop button clicked
-  | Just selected <- clickedTower (x, y) = gs { selectedTower = selected }
+  -- === Modificator selected ===
+  | Just mod <- getModificatorAt x y =
+      if coins gs >= modificatorCost mod
+         then gs { selectedModificator = Just mod }
+         else gs  -- Not enough coins
 
-  -- Otherwise try placing tower
-  | otherwise = tryPlaceTower (x, y) gs
+  -- === Tower clicked while holding a modificator ===
+  | Just mod <- selectedModificator gs
+  , Just tower <- findTowerAt (x, y) (towers gs) =
+      if canApplyModificator mod tower
+        then let updatedTowers = map
+                      (\t -> if towerPos t == towerPos tower
+                            then applyModificator mod t
+                            else t)
+                      (towers gs)
+              in gs { towers = updatedTowers
+                    , coins  = coins gs - modificatorCost mod
+                    , selectedModificator = Nothing
+                    }
+        else gs { selectedModificator = Nothing }
 
+  -- === Clicked a tower button ===
+  | Just selected <- clickedTower (x, y) =
+      gs { selectedTower = selected
+         , selectedModificator = Nothing }
+
+  -- === Try placing tower ===
+  | otherwise = tryPlaceTower (x, y) gs { selectedModificator = Nothing }
 
 clickedTower :: (Float, Float) -> Maybe TowerType
 clickedTower (mx, my) =
@@ -132,8 +155,6 @@ clickedTower (mx, my) =
               ) shopButtonRects of
     ((ttype, _, _):_) -> Just ttype
     _ -> Nothing
-
-
 
 insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
 insideRect (mx, my) (cx, cy) (w, h) =
@@ -144,7 +165,7 @@ tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
     Just spot
       | coins gs >= cost ->
-          let newTower        = Tower (selectedTower gs) spot 0.0 Nothing
+          let newTower        = Tower (selectedTower gs) spot 0.0 Nothing Nothing
               remainingSpots = filter (/= spot) (towerSpots gs)
           in gs { towers      = newTower : towers gs
                 , towerSpots  = remainingSpots
@@ -155,9 +176,7 @@ tryPlaceTower click gs =
 
     Nothing -> gs
 
-    
 isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
-
 
 update :: Float -> GameState -> GameState
 update dt gs = case gameStatus gs of
@@ -171,41 +190,31 @@ update dt gs = case gameStatus gs of
                else gs { gameStatus = Intro nextIdx 0 }
        else gs { gameStatus = Intro idx t' }
   _ -> updateGame dt gs
-  where imageDuration = 3.0  -- seconds per image
-
-
-
-
   
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs
   | gameStatus gs /= Playing = gs
-  | isPaused gs              = gs
+  | isPaused gs = gs
   | otherwise =
       let gs1 = updateWaveSystem dt gs
           (stillOnMap, reachedTower) = updateEnemies dt (enemies gs1)
-          hpLoss = (length reachedTower * 40)
-          newHP = towerHP gs1 - hpLoss
-
+          hpLoss = updateEnemyDamage reachedTower
+          newHP = max 0 (towerHP gs1 - hpLoss)
           (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) stillOnMap
-          (aliveEnemies, coinGain) = gainCoinsOnKills 5 damagedEnemies
+          (aliveEnemies, coinGain, bossChildren) = gainCoinsOnKillsWithBoss 5 damagedEnemies
           cooledTowers = updateTowersCooldown dt updatedTowers
-
+          finalEnemies = aliveEnemies ++ bossChildren
           newStatus
             | newHP <= 0 = Defeat
-            | null aliveEnemies
+            | null finalEnemies
               && null (waveQueue gs1)
               && currentGroup gs1 == Nothing
-              && currentWave gs1 == length generateWaves - 1
+              && currentWave gs1 == 9  -- 9 random waves + 1 boss wave
               = Victory
             | otherwise = Playing
-
-      in gs1 { enemies    = aliveEnemies
-             , towers     = cooledTowers
-             , towerHP    = newHP
-             , coins      = coins gs1 + coinGain
+      in gs1 { enemies = finalEnemies
+             , towers = cooledTowers
+             , towerHP = newHP
+             , coins = coins gs1 + coinGain
              , gameStatus = newStatus
              }
-
-
-
