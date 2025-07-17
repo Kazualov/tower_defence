@@ -87,7 +87,7 @@ generateWaves =
     , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
     , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
     , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
-    , [ createEnemy (EList [EInt '1', EInt '2', EInt '3']) Upper ]
+    , [ createEnemy (EList [EInt 1, EInt 2, EInt 3]) Upper ]
     , [ createEnemy (EMap [("key1", EInt 42), ("key2", EChar 'x')]) Lower ]
   ]
   , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
