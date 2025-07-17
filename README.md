@@ -7,6 +7,8 @@
 3. Click **Download**
 4. Unarchive the downloaded file
 
+Or if you have other OS, sorry, just use `git pull`, `stack run` in main branch
+
 ---
 
 ## 🎮 How to Play
