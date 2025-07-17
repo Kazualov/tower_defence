@@ -3,6 +3,8 @@ module Main where
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 import Data.List (find)
+import Graphics.Gloss.Juicy (loadJuicyJPG)
+
 
 import Game.Types
 import Game.Shop (shopButtonRects)
@@ -11,6 +13,8 @@ import Game.Logic
 import Game.Config
 import Game.Enemies
 import System.Random
+import Data.Maybe (catMaybes)
+
 
 
 
@@ -18,8 +22,10 @@ import System.Random
 main :: IO ()
 main = do
   gen <- newStdGen
-  let (waves, newGen) = generateRandomWaves gen 3
-      state = initialState waves newGen
+  rawImages <- mapM (loadJuicyJPG . (\n -> "algorithms-defence/assets/" ++ show n ++ " frame.jpg")) [1..6]
+  let images = catMaybes rawImages  -- Remove failed loads
+      (waves, newGen) = generateRandomWaves gen 3
+      state = initialState waves newGen images
   play
     (InWindow "Haskell Tower Defense" (windowWidth, windowHeight) (100, 100))
     white
@@ -29,10 +35,11 @@ main = do
     handleInput
     update
 
+
  -- Initial game state
-initialState :: [[[Enemy]]] -> StdGen -> GameState
-initialState waves gen = GameState
-  { gameStatus = Intro 0
+initialState :: [[[Enemy]]] -> StdGen -> [Picture]  -> GameState
+initialState waves gen images = GameState
+  { gameStatus = Intro 0 0
   , towerHP = 100
   , doodleText = "Hello"
   , enemies = []
@@ -56,15 +63,11 @@ initialState waves gen = GameState
   , coins = 100
   , isPaused = False
   , showPauseMenu = False
+  , introImages = images
   }
 
-    
+
 handleInput :: Event -> GameState -> GameState
--- Intro skip logic
-handleInput (EventKey (SpecialKey KeySpace) Down _ _) gs =
-  case gameStatus gs of
-    Intro _ -> gs { gameStatus = Playing }
-    _       -> gs  -- fall through to other input
 
 -- Tower selection
 handleInput (EventKey (Char '1') Down _ _) gs = gs { selectedTower = Archer }
@@ -75,13 +78,31 @@ handleInput (EventKey (Char '3') Down _ _) gs = gs { selectedTower = Sniper }
 handleInput (EventKey (Char 'p') Down _ _) gs =
   gs { isPaused = not (isPaused gs), showPauseMenu = not (isPaused gs) }
 
--- Mouse click
-handleInput (EventKey (MouseButton LeftButton) Up _ clickPos) gs =
-  handleClick clickPos gs
+-- Mouse click handling - uses existing handleClick for Playing state
+handleInput (EventKey (MouseButton LeftButton) Down _ clickPos) gs =
+  case gameStatus gs of
+    -- Intro navigation
+    Intro idx _ -> 
+      let images = introImages gs
+          nextIdx = (idx + 1) `mod` length images
+      in if nextIdx == 0
+         then gs { gameStatus = Playing }
+         else gs { gameStatus = Intro nextIdx 0 }
+    
+    -- Gameplay actions - uses your original handleClick
+    Playing -> handleClick clickPos gs
+    
+    -- Other states ignore clicks
+    _ -> gs
+
+-- Space skips to game
+handleInput (EventKey (SpecialKey KeySpace) Down _ _) gs =
+  case gameStatus gs of
+    Intro _ _ -> gs { gameStatus = Playing }
+    _ -> gs
 
 -- Default fallback
 handleInput _ gs = gs
-
 
 
 
@@ -140,8 +161,21 @@ isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
 update :: Float -> GameState -> GameState
 update dt gs = case gameStatus gs of
-  Intro t -> gs { gameStatus = Intro (t + dt) }
+  Intro idx t ->
+    let t' = t + dt
+        images = introImages gs
+    in if t' > imageDuration
+       then let nextIdx = (idx + 1) `mod` length images
+            in if nextIdx == 0
+               then gs { gameStatus = Playing }  -- Auto-advance to game after last image
+               else gs { gameStatus = Intro nextIdx 0 }
+       else gs { gameStatus = Intro idx t' }
   _ -> updateGame dt gs
+  where imageDuration = 3.0  -- seconds per image
+
+
+
+
   
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs

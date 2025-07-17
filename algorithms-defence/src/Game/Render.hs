@@ -11,8 +11,13 @@ import Game.Types
 
 render :: GameState -> Picture
 render gs = case gameStatus gs of
-  Intro t -> renderIntro t
-  _       -> renderGame gs
+  Intro idx _ -> renderIntro gs  -- Now matches both arguments
+  Playing     -> renderGame gs
+  Victory     -> renderGameOver gs
+  Defeat      -> renderGameOver gs
+
+
+
 
 renderGame :: GameState -> Picture
 renderGame gs = Pictures
@@ -206,8 +211,18 @@ renderPauseMenu gs
           ]
       where (w, h) = menuButtonSize
 
-renderIntro :: Float -> Picture
-renderIntro t = Pictures $ introParts t
+renderIntro :: GameState -> Picture
+renderIntro gs = case gameStatus gs of
+  Intro idx _ ->  -- Now using the idx parameter
+    let image = if idx < length (introImages gs)
+                then introImages gs !! idx
+                else Blank
+        images = introImages gs
+    in Pictures
+        [ scale 0.5 0.5 $ translate (-150) (-100) image
+        ]
+  _ -> Blank
+
 
 introParts :: Float -> [Picture]
 introParts t =

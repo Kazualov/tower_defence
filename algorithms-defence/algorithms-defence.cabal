@@ -28,7 +28,8 @@ executable algorithms-defence
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5,
                        gloss,
-                       random
+                       random,
+                       gloss-juicy
   ghc-options:         -Wall
                        -Wcompat
                        -Widentities

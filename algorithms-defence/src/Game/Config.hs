@@ -3,6 +3,10 @@ module Game.Config where
 import Game.Types
 
 
+totalIntroTime :: Float
+totalIntroTime = 5.0
+
+
 difficultyMultiplier :: Float
 difficultyMultiplier = 0.2
 
@@ -29,7 +33,7 @@ blastRadius = 30
 
 -- Window dimensions
 windowWidth, windowHeight :: Int
-windowWidth = 1000
+windowWidth = 1300
 windowHeight = 800
 
 -- Offsets

@@ -1,6 +1,8 @@
 module Game.Types where
 
 import System.Random (StdGen)
+import Graphics.Gloss (Picture)
+
 
 type Position = (Float, Float)
 
@@ -18,28 +20,30 @@ data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
 
 -- Intro Float - time from the start of the intro
-data GameStatus = Intro Float | Playing | Victory | Defeat
+data GameStatus = Intro Int Float  -- Now stores current image index and time
+                | Playing 
+                | Victory 
+                | Defeat
   deriving (Show, Eq)
 
 
 data GameState = GameState
   { towerHP     :: Int
   , doodleText  :: String
-  , enemies :: [Enemy]
-  -- Waves
+  , enemies     :: [Enemy]
+  , introImages :: [Picture]
   , currentWave :: Int
-  , waveQueue :: [[[Enemy]]]       -- groups left to spawn in current wave
-  , currentGroup :: Maybe ([Enemy], Int) -- (enemies in group, enemies spawned count)
+  , waveQueue   :: [[[Enemy]]]
+  , currentGroup :: Maybe ([Enemy], Int)
   , enemySpawnTimer :: Float
   , groupSpawnTimer :: Float
-  , wavePauseTimer :: Float
-  , randomGen :: StdGen
-  -- Waves
+  , wavePauseTimer  :: Float
+  , randomGen   :: StdGen
   , towers      :: [Tower]
   , towerSpots  :: [TowerSpot]
   , selectedTower :: TowerType
   , coins       :: Int
-  , gameStatus      :: GameStatus
+  , gameStatus  :: GameStatus
   , isPaused    :: Bool
   , showPauseMenu :: Bool
   } deriving (Show)
