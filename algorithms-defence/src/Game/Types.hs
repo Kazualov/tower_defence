@@ -4,13 +4,17 @@ type Position = (Float, Float)
 
 type TowerSpot = (Float, Float)
 
+-- Modificator types
+data Modificator = Map | Filter | GarbageCollector
+  deriving (Show, Eq)
+
 data Tower = Tower
   { towerType     :: TowerType
   , towerPos      :: TowerSpot
   , towerCooldown :: Float  -- seconds remaining until next shot
   , towerTarget   :: Maybe Enemy
+  , towerMod      :: Maybe Modificator  -- NEW: optional modificator
   } deriving (Show, Eq)
-
 
 data TowerType = Archer | Cannon | Sniper
   deriving (Show, Eq)
@@ -18,7 +22,6 @@ data TowerType = Archer | Cannon | Sniper
 -- Intro Float - time from the start of the intro
 data GameStatus = Intro Float | Playing | Victory | Defeat
   deriving (Show, Eq)
-
 
 data GameState = GameState
   { towerHP     :: Int
@@ -39,6 +42,8 @@ data GameState = GameState
   , gameStatus      :: GameStatus
   , isPaused    :: Bool
   , showPauseMenu :: Bool
+  , selectedModificator :: Maybe Modificator
+  , selectedTowerForMod :: Maybe Tower  -- ← Restore this
   } deriving (Show)
 
 data EnemyType
@@ -60,4 +65,3 @@ data Enemy = Enemy
   , enemyPath       :: Path
   , health          :: Int
   } deriving (Show, Eq)
-

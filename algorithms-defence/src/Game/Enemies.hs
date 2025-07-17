@@ -38,11 +38,8 @@ joinWith _   []     = ""
 joinWith _   [x]    = x
 joinWith sep (x:xs) = x ++ sep ++ joinWith sep xs
 
-
-
 textOffset :: EnemyType -> Float
 textOffset etype = fromIntegral (length (enemyLabel etype)) * 3
-
 
 pathWaypoints :: Game.Types.Path -> [Position]
 pathWaypoints Upper = upperPathWaypoints
@@ -84,15 +81,15 @@ generateWaves :: [[ [Enemy] ]]
 generateWaves =
   [ [ [ createEnemy (EChar 'D') Upper | _ <- [1..4] ]
     , [ createEnemy (EInt 3) Lower | _ <- [1..4] ]
-    , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
+    , [ createEnemy (EString "cc") Upper | _ <- [1..4] ]
     , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
-    , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
+    , [ createEnemy (EString "dz") Upper | _ <- [1..4] ]
     , [ createEnemy (EList [EInt 1, EInt 2, EInt 3]) Upper ]
     , [ createEnemy (EMap [("key1", EInt 42), ("key2", EChar 'x')]) Lower ]
   ]
   , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
     , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]
-    , [ createEnemy (EString "b") Lower | _ <- [1..4] ]
+    , [ createEnemy (EString "bb") Lower | _ <- [1..4] ]
     , [ createEnemy (EChar 'C') Upper | _ <- [1..3] ]
     ]
   ,
