@@ -43,7 +43,7 @@ mainTowerPos = (-mapWidth / 2 + 40, -45)
 topPathStart :: Position
 topPathStart = (mapWidth / 2 - 30, 45)
 
--- The start of the botton branch
+-- The start of the bottom branch
 bottomPathStart :: Position
 bottomPathStart = (mapWidth / 2 - 30, -90)
 
@@ -54,26 +54,26 @@ tunnelStart = (-mapWidth/2 + 350, -45)
 upperPathWaypoints :: [Position]
 upperPathWaypoints =
   [ 
-  topPathStart
-  , (mapWidth/2 - 30, 60), (120, 25), (80, 10), (0, -10), (-10, -20)
-  , tunnelStart
-  , mainTowerPos 
+    topPathStart
+    , (mapWidth/2 - 30, 60), (120, 25), (80, 10), (0, -10), (-10, -20)
+    , tunnelStart
+    , mainTowerPos 
   ]
 
 lowerPathWaypoints :: [Position]
 lowerPathWaypoints =
   [ 
-  bottomPathStart
-  , (mapWidth/2 - 30, -90), (80, -60), (0, -45), (-50, -40)
-  , tunnelStart
-  , mainTowerPos 
+    bottomPathStart
+    , (mapWidth/2 - 30, -90), (80, -60), (0, -45), (-50, -40)
+    , tunnelStart
+    , mainTowerPos 
   ]
 
 enemyDelay :: Float
-enemyDelay = 0.5
+enemyDelay = 0.7
 
 groupDelay :: Float
-groupDelay = 2.0
+groupDelay = 1.0
 
 waveDelay :: Float
 waveDelay = 5.0
@@ -86,7 +86,7 @@ towerCost Archer = 30
 towerCost Cannon = 50
 towerCost Sniper = 80
 
--- NEW: Modificator costs
+-- Modificator costs
 modificatorCost :: Modificator -> Int
 modificatorCost Map = 100
 modificatorCost Filter = 500
@@ -115,12 +115,32 @@ towerRangeFor Archer = 150  -- radius in pixels
 towerRangeFor Cannon = 100
 towerRangeFor Sniper = 250
 
+-- Boss-specific parameters
+bossHealth :: Int
+bossHealth = 1000
+
+bossSpeed :: Float
+bossSpeed = 20  -- Slower than regular enemies
+
+bossChildHealth :: Int
+bossChildHealth = 300
+
+bossChildOffset :: Float
+bossChildOffset = 40  -- Increased to prevent overlap
+
+bossDamage :: Int
+bossDamage = 100  -- Damage dealt by boss to throne
+
+bossChildDelay :: Float
+bossChildDelay = 0.5  -- Delay between boss child spawns
+
 hpOf :: EnemyType -> Int
 hpOf (EChar _)   = 100
 hpOf (EInt _)    = 200
 hpOf (EString _) = 300
-hpOf (EList xs)   = 100 + sum (map hpOf xs)  -- Optional: make it recursive
+hpOf (EList xs)  = 100 + sum (map hpOf xs)
 hpOf (EMap kvs) = 50 + sum (map (hpOf . snd) kvs)
+hpOf Boss = bossHealth
 
 shopButtonMinY, shopButtonMaxY :: Float
 shopButtonMinY = -fromIntegral windowHeight / 2 + 40 - 50  -- shop y - half height

@@ -50,8 +50,9 @@ data EnemyType
   = EChar Char
   | EInt Int
   | EString String
-  | EList [EnemyType]     -- Linked List enemy: represents nested elements
-  | EMap [(String, EnemyType)]  -- Map enemy: represents key-value structure
+  | EList [EnemyType]
+  | EMap [(String, EnemyType)]
+  | Boss
   deriving (Show, Eq)
 
 

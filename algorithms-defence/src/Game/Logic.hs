@@ -26,7 +26,6 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
                                  }
           in (resetTower : ts, newEnemies)
       | otherwise =
-          -- Check if target is still valid (alive & in range)
           let targetStillValid = case towerTarget tower of
                 Just target ->
                   target `elem` es && inRange tower (enemyPosition target) (towerPos tower)
@@ -34,28 +33,22 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
               tower' = if targetStillValid then tower else tower { towerTarget = Nothing }
           in (tower' : ts, es)
 
-    -- Each tower attacks only one enemy, with modificator effects
     attackOneEnemy :: Tower -> [Enemy] -> (Maybe Enemy, [Enemy])
     attackOneEnemy tower es =
       let inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
           currentTarget = towerTarget tower
-
-          -- Prioritize sticking to the previous target if valid
           chosenTarget =
             case currentTarget of
               Just t  -> if t `elem` inRangeEnemies then Just t else listToMaybe inRangeEnemies
               Nothing -> listToMaybe inRangeEnemies
-
       in case chosenTarget of
            Just target -> applyModificatorAttack tower target es
            Nothing -> (Nothing, es)
 
-    -- Apply damage with modificator effects
     applyModificatorAttack :: Tower -> Enemy -> [Enemy] -> (Maybe Enemy, [Enemy])
     applyModificatorAttack tower target es =
       case towerMod tower of
         Just Filter -> 
-          -- Filter mod: instant kill (99999 damage)
           let updatedEnemies = map (\e -> if enemyPosition e == enemyPosition target 
                                          then e { health = health e - 99999 }
                                          else e) es
@@ -63,7 +56,6 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
           in (updatedTarget, updatedEnemies)
         
         Just Map -> 
-          -- Map mod: area damage with reduced damage
           let dmg = towerDamageForMap (towerType tower)
               updatedEnemies = map (\e -> if distance (enemyPosition target) (enemyPosition e) <= mapModRadius
                                          then e { health = health e - dmg }
@@ -72,13 +64,11 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
           in (updatedTarget, updatedEnemies)
         
         _ -> 
-          -- Normal attack (no modificator or other mods)
           let dmg = towerDamageFor (towerType tower)
               updatedEnemies = map (damageIfTarget tower target dmg) es
               updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
           in (updatedTarget, updatedEnemies)
 
-    -- Apply damage only to selected target (for normal attacks)
     damageIfTarget :: Tower -> Enemy -> Int -> Enemy -> Enemy
     damageIfTarget tower target dmg enemy
       | towerType tower == Cannon =
@@ -89,27 +79,23 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
           enemy { health = health enemy - dmg }
       | otherwise = enemy
 
-    -- Check if enemy is in range of tower
     inRange :: Tower -> Position -> Position -> Bool
     inRange tower (x1, y1) (x2, y2) =
       sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRangeFor (towerType tower)
 
--- NEW: Apply modificator to a tower
 applyModificator :: Modificator -> Tower -> Tower
 applyModificator mod tower = tower { towerMod = Just mod }
 
--- NEW: Check if tower can have modificator applied
 canApplyModificator :: Modificator -> Tower -> Bool
-canApplyModificator GarbageCollector _ = True  -- Can always apply garbage collector
-canApplyModificator _ tower = towerMod tower == Nothing  -- Other mods only if no mod exists
+canApplyModificator GarbageCollector _ = True
+canApplyModificator _ tower = towerMod tower == Nothing
 
--- NEW: Find tower at position
 findTowerAt :: Position -> [Tower] -> Maybe Tower
 findTowerAt (x, y) towers = find (\t -> distance (towerPos t) (x, y) <= 25) towers
 
 updateEnemies :: Float -> [Enemy] -> ([Enemy], [Enemy])
 updateEnemies dt enemiesList =
-  let movedEnemies = map (moveEnemy (enemySpeed * dt)) enemiesList
+  let movedEnemies = map (moveEnemy dt) enemiesList
       (reached, active) = partition (\(Enemy _ _ waypointIndex path _) ->
         waypointIndex >= length (pathWaypoints path)) movedEnemies
   in (active, reached)
@@ -120,9 +106,9 @@ distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
   | wavePauseTimer > 0 = handleWavePause dt gs
-  | otherwise           = case currentGroup of
-      Nothing                   -> handleGroupDelay dt gs
-      Just (group, count)       -> spawnEnemiesFromGroup dt gs group count
+  | otherwise = case currentGroup of
+      Nothing -> handleGroupDelay dt gs
+      Just (group, count) -> spawnEnemiesFromGroup dt gs group count
 
 handleWavePause :: Float -> GameState -> GameState
 handleWavePause dt gs@GameState{..} =
@@ -159,16 +145,15 @@ handleGroupDelay dt gs@GameState{..}
 spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
 spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
   | newEnemySpawnTimer > 0 = gs { enemySpawnTimer = newEnemySpawnTimer }
-
   | spawnedCount < length enemiesInGroup =
-      let enemyToSpawn   = enemiesInGroup !! spawnedCount
+      let enemyToSpawn = enemiesInGroup !! spawnedCount
           newEnemiesList = enemies ++ [enemyToSpawn]
-      in gs { enemies        = newEnemiesList
-            , currentGroup   = Just (enemiesInGroup, spawnedCount + 1)
-            , enemySpawnTimer = enemyDelay
+          newSpawnTimer = if isBoss enemyToSpawn then bossChildDelay else enemyDelay
+      in gs { enemies = newEnemiesList
+            , currentGroup = Just (enemiesInGroup, spawnedCount + 1)
+            , enemySpawnTimer = newSpawnTimer
             }
-
-  | otherwise = gs { currentGroup    = Nothing
+  | otherwise = gs { currentGroup = Nothing
                    , groupSpawnTimer = groupDelay
                    , enemySpawnTimer = 0
                    }
@@ -179,3 +164,14 @@ gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
 gainCoinsOnKills coinReward enemies =
   let (alive, dead) = partition (\e -> health e > 0) enemies
   in (alive, length dead * coinReward)
+
+gainCoinsOnKillsWithBoss :: Int -> [Enemy] -> ([Enemy], Int, [Enemy])
+gainCoinsOnKillsWithBoss coinPerKill enemies =
+  let (alive, dead) = partition (\e -> health e > 0) enemies
+      coinGain = length dead * coinPerKill
+      bossChildren = concatMap (\e -> if isBoss e then spawnBossChildren e else []) dead
+  in (alive, coinGain, bossChildren)
+
+updateEnemyDamage :: [Enemy] -> Int
+updateEnemyDamage reachedTower =
+  sum $ map (\e -> if isBoss e then bossDamage else 40) reachedTower

@@ -2,15 +2,13 @@ module Main where
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
-import Data.List (find)
-
+import Data.List (find, partition)
 import Game.Types
 import Game.Shop
 import Game.Logic
 import Game.Render
 import Game.Config
 import Game.Enemies
-
 
 -- Main entry point
 main :: IO ()
@@ -23,7 +21,7 @@ main = play
   handleInput
   update
 
- -- Initial game state
+-- Initial game state
 initialState :: GameState
 initialState = GameState
   { gameStatus = Intro 0
@@ -53,7 +51,6 @@ initialState = GameState
   , selectedTowerForMod = Nothing
   }
 
-    
 handleInput :: Event -> GameState -> GameState
 -- Intro skip logic
 handleInput (EventKey (SpecialKey KeySpace) Down _ _) gs =
@@ -95,7 +92,7 @@ handleClick (x, y) gs
          then gs { selectedModificator = Just mod }
          else gs  -- Not enough coins
 
-    -- === Tower clicked while holding a modificator ===
+  -- === Tower clicked while holding a modificator ===
   | Just mod <- selectedModificator gs
   , Just tower <- findTowerAt (x, y) (towers gs) =
       if canApplyModificator mod tower
@@ -118,7 +115,6 @@ handleClick (x, y) gs
   -- === Try placing tower ===
   | otherwise = tryPlaceTower (x, y) gs { selectedModificator = Nothing }
 
-
 clickedTower :: (Float, Float) -> Maybe TowerType
 clickedTower (mx, my) =
   case filter (\(_, (cx, cy), (w, h)) ->
@@ -126,8 +122,6 @@ clickedTower (mx, my) =
               ) shopButtonRects of
     ((ttype, _, _):_) -> Just ttype
     _ -> Nothing
-
-
 
 insideRect :: (Float, Float) -> (Float, Float) -> (Float, Float) -> Bool
 insideRect (mx, my) (cx, cy) (w, h) =
@@ -148,43 +142,38 @@ tryPlaceTower click gs =
       where cost = towerCost (selectedTower gs)
 
     Nothing -> gs
-isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
+isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
 update :: Float -> GameState -> GameState
 update dt gs = case gameStatus gs of
   Intro t -> gs { gameStatus = Intro (t + dt) }
   _ -> updateGame dt gs
-  
+
 updateGame :: Float -> GameState -> GameState
 updateGame dt gs
   | gameStatus gs /= Playing = gs
-  | isPaused gs              = gs
+  | isPaused gs = gs
   | otherwise =
       let gs1 = updateWaveSystem dt gs
           (stillOnMap, reachedTower) = updateEnemies dt (enemies gs1)
-          hpLoss = (length reachedTower * 40)
+          hpLoss = updateEnemyDamage reachedTower
           newHP = towerHP gs1 - hpLoss
-
           (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) stillOnMap
-          (aliveEnemies, coinGain) = gainCoinsOnKills 5 damagedEnemies
+          (aliveEnemies, coinGain, bossChildren) = gainCoinsOnKillsWithBoss 5 damagedEnemies
           cooledTowers = updateTowersCooldown dt updatedTowers
-
+          finalEnemies = aliveEnemies ++ bossChildren
           newStatus
             | newHP <= 0 = Defeat
-            | null aliveEnemies
+            | null finalEnemies
               && null (waveQueue gs1)
               && currentGroup gs1 == Nothing
               && currentWave gs1 == length generateWaves - 1
               = Victory
             | otherwise = Playing
-
-      in gs1 { enemies    = aliveEnemies
-             , towers     = cooledTowers
-             , towerHP    = newHP
-             , coins      = coins gs1 + coinGain
+      in gs1 { enemies = finalEnemies
+             , towers = cooledTowers
+             , towerHP = newHP
+             , coins = coins gs1 + coinGain
              , gameStatus = newStatus
              }
-
-
-
