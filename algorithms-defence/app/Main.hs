@@ -5,9 +5,9 @@ import Graphics.Gloss.Interface.Pure.Game
 import Data.List (find)
 
 import Game.Types
-import Game.Shop (shopButtonRects)
-import Game.Render
+import Game.Shop
 import Game.Logic
+import Game.Render
 import Game.Config
 import Game.Enemies
 
@@ -46,9 +46,11 @@ initialState = GameState
   , enemySpawnTimer = 0
   , groupSpawnTimer = 0
   , wavePauseTimer = 0
-  , coins = 100
+  , coins = 10000
   , isPaused = False
   , showPauseMenu = False
+  , selectedModificator = Nothing
+  , selectedTowerForMod = Nothing
   }
 
     
@@ -76,8 +78,6 @@ handleInput (EventKey (MouseButton LeftButton) Up _ clickPos) gs =
 handleInput _ gs = gs
 
 
-
-
 handleClick :: (Float, Float) -> GameState -> GameState
 handleClick (x, y) gs
   -- Pause button clicked
@@ -90,11 +90,34 @@ handleClick (x, y) gs
   | showPauseMenu gs && insideRect (x, y) quitButtonPos menuButtonSize =
       gs { gameStatus = Defeat, isPaused = False, showPauseMenu = False }
 
-  -- Shop button clicked
-  | Just selected <- clickedTower (x, y) = gs { selectedTower = selected }
+  -- === Modificator selected ===
+  | Just mod <- getModificatorAt x y =
+      if coins gs >= modificatorCost mod
+         then gs { selectedModificator = Just mod }
+         else gs  -- Not enough coins
 
-  -- Otherwise try placing tower
-  | otherwise = tryPlaceTower (x, y) gs
+    -- === Tower clicked while holding a modificator ===
+  | Just mod <- selectedModificator gs
+  , Just tower <- findTowerAt (x, y) (towers gs) =
+      if canApplyModificator mod tower
+        then let updatedTowers = map
+                      (\t -> if towerPos t == towerPos tower
+                            then applyModificator mod t
+                            else t)
+                      (towers gs)
+              in gs { towers = updatedTowers
+                    , coins  = coins gs - modificatorCost mod
+                    , selectedModificator = Nothing
+                    }
+        else gs { selectedModificator = Nothing }
+
+  -- === Clicked a tower button ===
+  | Just selected <- clickedTower (x, y) =
+      gs { selectedTower = selected
+         , selectedModificator = Nothing }
+
+  -- === Try placing tower ===
+  | otherwise = tryPlaceTower (x, y) gs { selectedModificator = Nothing }
 
 
 clickedTower :: (Float, Float) -> Maybe TowerType
@@ -116,7 +139,7 @@ tryPlaceTower click gs =
   case find (isClose click) (towerSpots gs) of
     Just spot
       | coins gs >= cost ->
-          let newTower        = Tower (selectedTower gs) spot 0.0 Nothing
+          let newTower        = Tower (selectedTower gs) spot 0.0 Nothing Nothing
               remainingSpots = filter (/= spot) (towerSpots gs)
           in gs { towers      = newTower : towers gs
                 , towerSpots  = remainingSpots
@@ -126,8 +149,6 @@ tryPlaceTower click gs =
       where cost = towerCost (selectedTower gs)
 
     Nothing -> gs
-
-    
 isClose (x1, y1) (x2, y2) = abs (x1 - x2) < 20 && abs (y1 - y2) < 20
 
 

@@ -14,7 +14,6 @@ updateTowersCooldown dt = map updateTower
     updateTower t = t { towerCooldown = max 0 (towerCooldown t - dt)
                       , towerTarget   = towerTarget t }
 
-
 applyTowerDamage :: [Tower] -> [Enemy] -> ([Tower], [Enemy])
 applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
   where
@@ -35,11 +34,10 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
               tower' = if targetStillValid then tower else tower { towerTarget = Nothing }
           in (tower' : ts, es)
 
-    -- Each tower attacks only one enemy
+    -- Each tower attacks only one enemy, with modificator effects
     attackOneEnemy :: Tower -> [Enemy] -> (Maybe Enemy, [Enemy])
     attackOneEnemy tower es =
-      let dmg = towerDamageFor (towerType tower)
-          inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
+      let inRangeEnemies = filter (\e -> inRange tower (enemyPosition e) (towerPos tower)) es
           currentTarget = towerTarget tower
 
           -- Prioritize sticking to the previous target if valid
@@ -49,13 +47,38 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
               Nothing -> listToMaybe inRangeEnemies
 
       in case chosenTarget of
-           Just target ->
-             let updatedEnemies = map (damageIfTarget tower target dmg) es
-                 updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
-             in (updatedTarget, updatedEnemies)
+           Just target -> applyModificatorAttack tower target es
            Nothing -> (Nothing, es)
 
-    -- Apply damage only to selected target
+    -- Apply damage with modificator effects
+    applyModificatorAttack :: Tower -> Enemy -> [Enemy] -> (Maybe Enemy, [Enemy])
+    applyModificatorAttack tower target es =
+      case towerMod tower of
+        Just Filter -> 
+          -- Filter mod: instant kill (99999 damage)
+          let updatedEnemies = map (\e -> if enemyPosition e == enemyPosition target 
+                                         then e { health = health e - 99999 }
+                                         else e) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+        
+        Just Map -> 
+          -- Map mod: area damage with reduced damage
+          let dmg = towerDamageForMap (towerType tower)
+              updatedEnemies = map (\e -> if distance (enemyPosition target) (enemyPosition e) <= mapModRadius
+                                         then e { health = health e - dmg }
+                                         else e) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+        
+        _ -> 
+          -- Normal attack (no modificator or other mods)
+          let dmg = towerDamageFor (towerType tower)
+              updatedEnemies = map (damageIfTarget tower target dmg) es
+              updatedTarget = find (\e -> enemyPosition e == enemyPosition target) updatedEnemies
+          in (updatedTarget, updatedEnemies)
+
+    -- Apply damage only to selected target (for normal attacks)
     damageIfTarget :: Tower -> Enemy -> Int -> Enemy -> Enemy
     damageIfTarget tower target dmg enemy
       | towerType tower == Cannon =
@@ -71,6 +94,18 @@ applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
     inRange tower (x1, y1) (x2, y2) =
       sqrt ((x1 - x2)^2 + (y1 - y2)^2) <= towerRangeFor (towerType tower)
 
+-- NEW: Apply modificator to a tower
+applyModificator :: Modificator -> Tower -> Tower
+applyModificator mod tower = tower { towerMod = Just mod }
+
+-- NEW: Check if tower can have modificator applied
+canApplyModificator :: Modificator -> Tower -> Bool
+canApplyModificator GarbageCollector _ = True  -- Can always apply garbage collector
+canApplyModificator _ tower = towerMod tower == Nothing  -- Other mods only if no mod exists
+
+-- NEW: Find tower at position
+findTowerAt :: Position -> [Tower] -> Maybe Tower
+findTowerAt (x, y) towers = find (\t -> distance (towerPos t) (x, y) <= 25) towers
 
 updateEnemies :: Float -> [Enemy] -> ([Enemy], [Enemy])
 updateEnemies dt enemiesList =
@@ -81,7 +116,6 @@ updateEnemies dt enemiesList =
 
 distance :: Position -> Position -> Float
 distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
-
 
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
@@ -111,7 +145,6 @@ startNextWave gs@GameState{..}
   where
     nextWave = currentWave + 1
 
-
 handleGroupDelay :: Float -> GameState -> GameState
 handleGroupDelay dt gs@GameState{..}
   | groupSpawnTimer > 0 =
@@ -122,7 +155,6 @@ handleGroupDelay dt gs@GameState{..}
                          , waveQueue = rest
                          , enemySpawnTimer = 0
                          }
-
 
 spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
 spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
@@ -143,9 +175,7 @@ spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
   where
     newEnemySpawnTimer = enemySpawnTimer - dt
 
-
 gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
 gainCoinsOnKills coinReward enemies =
   let (alive, dead) = partition (\e -> health e > 0) enemies
   in (alive, length dead * coinReward)
-

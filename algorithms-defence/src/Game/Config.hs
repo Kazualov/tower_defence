@@ -2,7 +2,6 @@ module Game.Config where
 
 import Game.Types
 
-
 coinRewardPerKill :: Int
 coinRewardPerKill = 10
 
@@ -71,7 +70,7 @@ lowerPathWaypoints =
   ]
 
 enemyDelay :: Float
-enemyDelay = 1.0
+enemyDelay = 0.1
 
 groupDelay :: Float
 groupDelay = 2.0
@@ -87,23 +86,34 @@ towerCost Archer = 30
 towerCost Cannon = 50
 towerCost Sniper = 80
 
+-- NEW: Modificator costs
+modificatorCost :: Modificator -> Int
+modificatorCost Map = 100
+modificatorCost Filter = 500
+modificatorCost GarbageCollector = 80
+
 cooldownFor :: TowerType -> Float
 cooldownFor Archer = 0.5
 cooldownFor Cannon = 1.0
 cooldownFor Sniper = 2.0
-
 
 towerDamageFor :: TowerType -> Int
 towerDamageFor Archer = 20
 towerDamageFor Cannon = 10
 towerDamageFor Sniper = 80
 
+towerDamageForMap :: TowerType -> Int
+towerDamageForMap Archer = 10  -- reduced damage
+towerDamageForMap Cannon = 20
+towerDamageForMap Sniper = 40
+
+mapModRadius :: Float
+mapModRadius = 60
+
 towerRangeFor :: TowerType -> Float
 towerRangeFor Archer = 150  -- radius in pixels
 towerRangeFor Cannon = 100
 towerRangeFor Sniper = 250
-
-
 
 shopButtonMinY, shopButtonMaxY :: Float
 shopButtonMinY = -fromIntegral windowHeight / 2 + 40 - 50  -- shop y - half height

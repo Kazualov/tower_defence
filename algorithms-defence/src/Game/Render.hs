@@ -36,6 +36,7 @@ renderGame gs = Pictures
   , renderPauseButton
   , renderPauseMenu gs
   , renderShopMenu gs
+  , renderSelectedTowerIndicator gs  -- NEW: Show selected tower for modificator
   ]
 
 drawEnemies :: [Enemy] -> Picture 
@@ -45,14 +46,51 @@ drawPlacedTowers :: [Tower] -> Picture
 drawPlacedTowers = pictures . map drawTowerAtScreen
 
 drawTowerAtScreen :: Tower -> Picture
-drawTowerAtScreen (Tower ttype pos _ _) =
+drawTowerAtScreen tower@(Tower ttype pos _ _ mod) =
   translate x y $
-    case ttype of
-      Archer -> drawArcherTowerRaw
-      Cannon -> drawCannonTowerRaw
-      Sniper -> drawSniperTowerRaw
+    Pictures
+      [ -- Base tower
+        case ttype of
+          Archer -> drawArcherTowerRaw
+          Cannon -> drawCannonTowerRaw
+          Sniper -> drawSniperTowerRaw
+      
+      -- Modificator indicator
+      , drawModificatorIndicator mod
+      ]
   where (x, y) = pos
 
+-- NEW: Draw modificator indicator on tower
+drawModificatorIndicator :: Maybe Modificator -> Picture
+drawModificatorIndicator Nothing = Blank
+drawModificatorIndicator (Just mod) =
+  translate 15 15 $
+    Pictures
+      [ color (modColor mod) $ thickCircle 8 3
+      , color black $ 
+          translate (-3) (-3) $
+            scale 0.08 0.08 $ text (modSymbol mod)
+      ]
+
+modColor :: Modificator -> Color
+modColor Map = yellow
+modColor Filter = red
+modColor GarbageCollector = green
+
+modSymbol :: Modificator -> String
+modSymbol Map = "M"
+modSymbol Filter = "F"
+modSymbol GarbageCollector = "G"
+
+renderSelectedTowerIndicator :: GameState -> Picture
+renderSelectedTowerIndicator gs =
+  case selectedTowerForMod gs of
+    Nothing -> Blank
+    Just tower ->
+      let (x, y) = towerPos tower
+      in translate x y $
+           color orange $
+             thickCircle 30 5
 
 -- Convert screen coords to grid cells
 xToCol :: Float -> Int
@@ -91,8 +129,6 @@ renderCoins gs =
               text ("Coins: " ++ show (coins gs))
       ]
 
-
-
 renderTowerPrices :: Picture
 renderTowerPrices =
   translate (fromIntegral windowWidth / 2 - 250)
@@ -106,6 +142,10 @@ renderTowerPrices =
       , ("Archer: " ++ show (towerCost Archer), Just 80)
       , ("Cannon: " ++ show (towerCost Cannon), Just 80)
       , ("Sniper: " ++ show (towerCost Sniper), Just 80)
+      , ("", Nothing)  -- Empty line
+      , ("Modificators:", Nothing)
+      , ("Map: " ++ show (modificatorCost Map), Just 50)
+      , ("Filter: " ++ show (modificatorCost Filter), Just 60)
       ]
 
     drawLine :: Int -> (String, Maybe Float) -> Picture
@@ -116,12 +156,11 @@ renderTowerPrices =
                       color black $
                         text lineText
           coinPic = case mIconOffset of
-            Just x -> translate 95 (yOffset + 8) $
+            Just x -> translate x (yOffset + 8) $
                         color (makeColorI 255 215 0 255) $
                           thickCircle 5 3
             Nothing -> Blank
       in Pictures [textPic, coinPic]
-
 
 renderGameOver :: GameState -> Picture
 renderGameOver gs = case gameStatus gs of
@@ -134,7 +173,6 @@ renderGameOver gs = case gameStatus gs of
         scale 0.2 0.2 $
           color red $
             text msg
-
 
 renderTowerHP :: GameState -> Picture
 renderTowerHP gs =
@@ -152,7 +190,6 @@ renderPause True =
       color red $
         text "⏸ PAUSED"
 renderPause False = Blank
-
 
 pauseButtonPos :: (Float, Float)
 pauseButtonPos = (fromIntegral windowWidth / 2 - 60, fromIntegral windowHeight / 2 - 30)
