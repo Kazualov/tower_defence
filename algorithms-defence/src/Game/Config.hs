@@ -107,7 +107,8 @@ hpOf :: EnemyType -> Int
 hpOf (EChar _)   = 100
 hpOf (EInt _)    = 200
 hpOf (EString _) = 300
-
+hpOf (EList xs)   = 100 + sum (map hpOf xs)  -- Optional: make it recursive
+hpOf (EMap kvs) = 50 + sum (map (hpOf . snd) kvs)
 
 
 shopButtonMinY, shopButtonMaxY :: Float

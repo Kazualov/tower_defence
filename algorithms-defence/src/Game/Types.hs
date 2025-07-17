@@ -41,8 +41,14 @@ data GameState = GameState
   , showPauseMenu :: Bool
   } deriving (Show)
 
-data EnemyType = EChar Char | EInt Int | EString String
+data EnemyType
+  = EChar Char
+  | EInt Int
+  | EString String
+  | EList [EnemyType]     -- Linked List enemy: represents nested elements
+  | EMap [(String, EnemyType)]  -- Map enemy: represents key-value structure
   deriving (Show, Eq)
+
 
 data Path = Upper | Lower
   deriving (Show, Eq)  

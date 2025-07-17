@@ -24,14 +24,25 @@ drawEnemy (Enemy etype (x, y) _ _ hp) =
       ]
 
 enemyLabel :: EnemyType -> String
-enemyLabel (EChar c)    = [c]
-enemyLabel (EInt n)     = show n
-enemyLabel (EString s)  = s
+enemyLabel (EChar c)      = [c]
+enemyLabel (EInt n)       = show n
+enemyLabel (EString s)    = s
+enemyLabel (EList xs)     = "[" ++ joinWith ", " (map enemyLabel xs) ++ "]"
+enemyLabel (EMap kvs)     = "{" ++ joinWith ", " (map showKV kvs) ++ "}"
+  where
+    showKV (k, v) = k ++ ": " ++ enemyLabel v
+
+-- Function for building lists and maps representation in the game
+joinWith :: String -> [String] -> String
+joinWith _   []     = ""
+joinWith _   [x]    = x
+joinWith sep (x:xs) = x ++ sep ++ joinWith sep xs
+
+
 
 textOffset :: EnemyType -> Float
-textOffset (EChar _)   = 5
-textOffset (EInt n)    = fromIntegral (length (show n)) * 3
-textOffset (EString s) = fromIntegral (length s) * 3
+textOffset etype = fromIntegral (length (enemyLabel etype)) * 3
+
 
 pathWaypoints :: Game.Types.Path -> [Position]
 pathWaypoints Upper = upperPathWaypoints
@@ -71,19 +82,22 @@ moveEnemy speed enemy@(Enemy etype (x, y) waypointIndex path hp)
 -- Wave definitions using list comprehensions:
 generateWaves :: [[ [Enemy] ]]
 generateWaves =
-  [ [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
-    , [ createEnemy (EInt 1) Lower | _ <- [1..5] ]
-    , [ createEnemy (EString "hello") Upper | _ <- [1..3] ]
-    ]
+  [ [ [ createEnemy (EChar 'D') Upper | _ <- [1..4] ]
+    , [ createEnemy (EInt 3) Lower | _ <- [1..4] ]
+    , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
+    , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
+    , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
+    , [ createEnemy (EList [EInt '1', EInt '2', EInt '3']) Upper ]
+    , [ createEnemy (EMap [("key1", EInt 42), ("key2", EChar 'x')]) Lower ]
+  ]
   , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
     , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]
     , [ createEnemy (EString "b") Lower | _ <- [1..4] ]
     , [ createEnemy (EChar 'C') Upper | _ <- [1..3] ]
     ]
-  , [ [ createEnemy (EChar 'D') Upper | _ <- [1..4] ]
-    , [ createEnemy (EInt 3) Lower | _ <- [1..4] ]
-    , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
-    , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
-    , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
+  ,
+    [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
+    , [ createEnemy (EInt 1) Lower | _ <- [1..5] ]
+    , [ createEnemy (EString "hello") Upper | _ <- [1..3] ]
     ]
   ]
