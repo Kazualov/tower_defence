@@ -16,7 +16,7 @@ render gs = case gameStatus gs of
 
 renderGame :: GameState -> Picture
 renderGame gs = Pictures
-  [ -- (unchanged: full game scene below)
+  [
     translate 0 mapOffsetY $ pictures
       [ mapBorder
       , lambdaPath
@@ -29,14 +29,13 @@ renderGame gs = Pictures
   , drawPlacedTowers (towers gs)
   , renderWaveIndicator gs
   , renderCoins gs
-  , renderTowerPrices
   , renderGameOver gs
   , renderTowerHP gs
   , renderPause (isPaused gs)
   , renderPauseButton
   , renderPauseMenu gs
   , renderShopMenu gs
-  , renderSelectedTowerIndicator gs  -- NEW: Show selected tower for modificator
+  , renderSelectedTowerIndicator gs
   ]
 
 drawEnemies :: [Enemy] -> Picture 

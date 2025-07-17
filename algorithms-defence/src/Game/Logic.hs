@@ -103,34 +103,16 @@ updateEnemies dt enemiesList =
 distance :: Position -> Position -> Float
 distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 
-updateWaveSystem :: Float -> GameState -> GameState
-updateWaveSystem dt gs@GameState{..}
-  | wavePauseTimer > 0 = handleWavePause dt gs
-  | otherwise = case currentGroup of
-      Nothing -> handleGroupDelay dt gs
-      Just (group, count) -> spawnEnemiesFromGroup dt gs group count
+updateEnemyDamage :: [Enemy] -> Int
+updateEnemyDamage enemies =
+  sum $ map (\e -> if isBoss e then bossDamage else 40) enemies
 
-handleWavePause :: Float -> GameState -> GameState
-handleWavePause dt gs@GameState{..} =
-  let newPause = max 0 (wavePauseTimer - dt)
-      gs' = gs { wavePauseTimer = newPause }
-  in if newPause == 0
-     then startNextWave gs'
-     else gs'
-
-startNextWave :: GameState -> GameState
-startNextWave gs@GameState{..} =
-  let (newWave, newGen) = generateRandomWave (createWaveParams (currentWave + 1)) randomGen
-  in gs { waveQueue = waveQueue ++ [newWave]
-        , randomGen = newGen
-        , currentWave = currentWave + 1
-        }
-  where
-    createWaveParams n = WaveParams
-      { waveSize = 5 + n * 2
-      , groupCount = 1 + n `div` 3
-      , intensity = min 1.0 (0.2 + fromIntegral n * 0.1)
-      }
+gainCoinsOnKillsWithBoss :: Int -> [Enemy] -> ([Enemy], Int, [Enemy])
+gainCoinsOnKillsWithBoss coinsPerKill enemies =
+  let (dead, alive) = partition (\e -> health e <= 0) enemies
+      bossChildren = concatMap (\e -> if isBoss e && health e <= 0 then spawnBossChildren e else []) dead
+      coinGain = length dead * coinsPerKill
+  in (alive, coinGain, bossChildren)
 
 handleGroupDelay :: Float -> GameState -> GameState
 handleGroupDelay dt gs@GameState{..}
@@ -138,13 +120,12 @@ handleGroupDelay dt gs@GameState{..}
       gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
   | otherwise = case waveQueue of
       [] -> gs { wavePauseTimer = waveDelay }
-      (wave:restWaves) -> case wave of
-        [] -> gs { waveQueue = restWaves }  -- skip empty wave
-        (group:restGroups) -> gs { currentGroup = Just (group, 0)
-                                 , waveQueue = restGroups : restWaves
-                                 , enemySpawnTimer = 0
-                                 }
-
+      (wave:rest) -> case wave of
+        [] -> gs { waveQueue = rest, wavePauseTimer = waveDelay }
+        (group:groups) -> gs { currentGroup = Just (group, 0)
+                             , waveQueue = groups : rest
+                             , enemySpawnTimer = 0
+                             }
 
 spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
 spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
@@ -164,18 +145,38 @@ spawnEnemiesFromGroup dt gs@GameState{..} enemiesInGroup spawnedCount
   where
     newEnemySpawnTimer = enemySpawnTimer - dt
 
-gainCoinsOnKills :: Int -> [Enemy] -> ([Enemy], Int)
-gainCoinsOnKills coinReward enemies =
-  let (alive, dead) = partition (\e -> health e > 0) enemies
-  in (alive, length dead * coinReward)
+updateWaveSystem :: Float -> GameState -> GameState
+updateWaveSystem dt gs@GameState{..}
+  | wavePauseTimer > 0 = handleWavePause dt gs
+  | otherwise = case currentGroup of
+      Nothing -> handleGroupDelay dt gs
+      Just (group, count) -> spawnEnemiesFromGroup dt gs group count
 
-gainCoinsOnKillsWithBoss :: Int -> [Enemy] -> ([Enemy], Int, [Enemy])
-gainCoinsOnKillsWithBoss coinPerKill enemies =
-  let (alive, dead) = partition (\e -> health e > 0) enemies
-      coinGain = length dead * coinPerKill
-      bossChildren = concatMap (\e -> if isBoss e then spawnBossChildren e else []) dead
-  in (alive, coinGain, bossChildren)
+handleWavePause :: Float -> GameState -> GameState
+handleWavePause dt gs@GameState{..} =
+  let newPause = max 0 (wavePauseTimer - dt)
+      gs' = gs { wavePauseTimer = newPause }
+  in if newPause == 0
+     then startNextWave gs'
+     else gs'
 
-updateEnemyDamage :: [Enemy] -> Int
-updateEnemyDamage reachedTower =
-  sum $ map (\e -> if isBoss e then bossDamage else 40) reachedTower
+startNextWave :: GameState -> GameState
+startNextWave gs@GameState{..}
+  | currentWave < 8 =  -- 8 for 9 random waves (0-based index)
+      let nextWave = currentWave + 1
+          (newWave, newGen) = generateRandomWave (createWaveParams nextWave) randomGen
+      in gs { currentWave = nextWave
+            , waveQueue = [newWave] ++ waveQueue
+            , currentGroup = Nothing
+            , enemySpawnTimer = 0
+            , groupSpawnTimer = 0
+            , randomGen = newGen
+            }
+  | currentWave == 8 =  -- Switch to boss wave
+      gs { currentWave = 9
+         , waveQueue = [[[createBoss Upper]]]
+         , currentGroup = Nothing
+         , enemySpawnTimer = 0
+         , groupSpawnTimer = 0
+         }
+  | otherwise = gs  -- No more waves after boss

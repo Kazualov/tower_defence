@@ -1,11 +1,10 @@
 module Game.Enemies where
 
-import System.Random (Random(randomR), StdGen, mkStdGen, split)  -- Add this import
+import System.Random (Random(randomR), StdGen)
 import Graphics.Gloss
 import Game.Types
 import Game.Config
-
-
+import Debug.Trace (trace)
 
 createEnemy :: EnemyType -> Game.Types.Path -> Enemy
 createEnemy etype path =
@@ -58,25 +57,26 @@ pathWaypoints Upper = upperPathWaypoints
 pathWaypoints Lower = lowerPathWaypoints
 
 moveEnemy :: Float -> Enemy -> Enemy
-moveEnemy dt enemy@(Enemy etype pos@(x,y) wpIndex path hp)
-  | wpIndex >= length waypoints = enemy
-  | otherwise = 
-      let (currentX, currentY) = waypoints !! wpIndex
-          nextIndex = min (wpIndex + 1) (length waypoints - 1)
-          (nextX, nextY) = waypoints !! nextIndex
-          dx = nextX - currentX
-          dy = nextY - currentY
-          distance = sqrt (dx * dx + dy * dy)
+moveEnemy dt enemy@(Enemy etype (x, y) wpIndex path hp)
+  | wpIndex >= length waypoints = enemy  -- за пределами пути
+  | otherwise =
+      let (tx, ty) = waypoints !! wpIndex
+          dx = tx - x
+          dy = ty - y
+          dist = sqrt (dx * dx + dy * dy)
           speed = if isBoss enemy then bossSpeed else enemySpeed
-          moveDist = speed * dt
-          ratio = moveDist / max 1 distance
+          moveDist = min dist (speed * dt)  -- не перепрыгнем
+          ratio = if dist == 0 then 0 else moveDist / dist
           newX = x + dx * ratio
           newY = y + dy * ratio
-          distToNext = sqrt ((nextX - newX)^2 + (nextY - newY)^2)
-          newWpIndex = if distToNext < 5 then nextIndex else wpIndex
-      in Enemy etype (newX, newY) newWpIndex path hp
+          distAfterMove = sqrt ((tx - newX)^2 + (ty - newY)^2)
+          reached = distAfterMove < 1.0
+          newWpIndex = if reached then wpIndex + 1 else wpIndex
+      in trace ("Hello Nikolay") (Enemy etype (newX, newY) newWpIndex path hp)
   where
     waypoints = pathWaypoints path
+
+
 
 createBoss :: Game.Types.Path -> Enemy
 createBoss path = Enemy Boss startPos 0 path bossHealth
@@ -95,49 +95,18 @@ spawnBossChildren (Enemy _ (x,y) wpIndex path _) =
       child2 = Enemy (EString "Kudasov") (x + bossChildOffset, y) wpIndex path bossChildHealth
   in [child1, child2]
 
-generateWaves :: [[ [Enemy] ]]
-generateWaves =
-  [ [ [ createEnemy (EChar 'D') Upper | _ <- [1..4] ]
-    , [ createEnemy (EInt 3) Lower | _ <- [1..4] ]
-    , [ createEnemy (EString "c") Upper | _ <- [1..4] ]
-    , [ createEnemy (EChar 'E') Lower | _ <- [1..3] ]
-    , [ createEnemy (EString "d") Upper | _ <- [1..4] ]
-    , [ createEnemy (EList [EInt 1, EInt 2, EInt 3]) Upper ]
-    , [ createEnemy (EMap [("key1", EInt 42), ("key2", EChar 'x')]) Lower ]
-  ]
-  , [ [ createEnemy (EChar 'B') Lower | _ <- [1..4] ]
-    , [ createEnemy (EInt 2) Upper | _ <- [1..3] ]
-    , [ createEnemy (EString "b") Lower | _ <- [1..4] ]
-    , [ createEnemy (EChar 'C') Upper | _ <- [1..3] ]
-    ]
-  ,
-    [ [ createEnemy (EChar 'A') Upper | _ <- [1..3] ]
-    , [ createEnemy (EInt 1) Lower | _ <- [1..5] ]
-    , [ createEnemy (EString "hello") Upper | _ <- [1..3] ]
-    ]
-  , [ [ createBoss Upper ] ]
-  ]
-
-
 -- Generate random waves
 generateRandomWaves :: StdGen -> Int -> ([[[Enemy]]], StdGen)
 generateRandomWaves gen waveCount =
-  generateWavesRec gen waveCount []
+  let (waves, newGen) = generateWavesRec gen waveCount []
+      bossWave = [[createBoss Upper]]  -- Final boss wave
+  in (waves ++ [bossWave], newGen)
   where
     generateWavesRec :: StdGen -> Int -> [[[Enemy]]] -> ([[[Enemy]]], StdGen)
     generateWavesRec g 0 acc = (reverse acc, g)
     generateWavesRec g n acc =
-      let (wave, newGen) = generateRandomWave (createWaveParams n difficultyMultiplier) g
+      let (wave, newGen) = generateRandomWave (createWaveParams n) g
       in generateWavesRec newGen (n-1) (wave:acc)
-
-    -- Add difficulty setting
-    createWaveParams :: Int -> Float -> WaveParams
-    createWaveParams waveNum difficultyMultiplier = WaveParams
-      { waveSize = 5 + waveNum * 2
-      , groupCount = 1 + (waveNum `div` 3)
-      , intensity = min 2.0 (0.2 + fromIntegral waveNum * 0.1 * difficultyMultiplier)
-      }
-
 
 -- Generate a single random wave
 generateRandomWave :: WaveParams -> StdGen -> ([[Enemy]], StdGen)
@@ -176,17 +145,17 @@ generateEnemyGroup size intensity path gen =
     generateEnemiesRec n g acc =
       let (typeRand, g1) = randomR (0.0 :: Float, 1.0) g
           enemyType = selectEnemyType typeRand intensity
-          g2 = g1  -- not used anymore but required for chaining
           baseHealth = hpOf enemyType
-          enemy = (createEnemy enemyType path) { health = baseHealth }
-      in generateEnemiesRec (n-1) g2 (enemy:acc)
+          enemy = createEnemy enemyType path
+      in generateEnemiesRec (n-1) g1 (enemy:acc)
 
-
--- enemyType = selectEnemyType typeRand intensity
-          -- (healthRand, g2) = randomR (0.8, 1.2) g1
-          -- baseHealth = hpOf enemyType
-          -- adjustedHealth = round (fromIntegral baseHealth * healthRand * (1 + intensity))
-          -- enemy = (createEnemy enemyType path) { health = adjustedHealth }
+-- Define wave parameters
+createWaveParams :: Int -> WaveParams
+createWaveParams waveNum = WaveParams
+  { waveSize = 5 + waveNum * 2
+  , groupCount = 1 + (waveNum `div` 3)
+  , intensity = min 1.0 (0.2 + fromIntegral waveNum * 0.1 * difficultyMultiplier)
+  }
 
 -- Select enemy type based on random value and intensity
 selectEnemyType :: Float -> Float -> EnemyType

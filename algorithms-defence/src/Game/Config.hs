@@ -29,7 +29,7 @@ blastRadius = 30
 -- Window dimensions
 windowWidth, windowHeight :: Int
 windowWidth = 1000
-windowHeight = 800
+windowHeight = 700
 
 -- Offsets
 mapOffsetY :: Float
@@ -73,10 +73,10 @@ lowerPathWaypoints =
   ]
 
 enemyDelay :: Float
-enemyDelay = 0.7
+enemyDelay = 1.5
 
 groupDelay :: Float
-groupDelay = 1.0
+groupDelay = 2
 
 waveDelay :: Float
 waveDelay = 5.0
@@ -126,7 +126,7 @@ bossSpeed :: Float
 bossSpeed = 20  -- Slower than regular enemies
 
 bossChildHealth :: Int
-bossChildHealth = 300
+bossChildHealth = 700
 
 bossChildOffset :: Float
 bossChildOffset = 40  -- Increased to prevent overlap
@@ -135,7 +135,7 @@ bossDamage :: Int
 bossDamage = 100  -- Damage dealt by boss to throne
 
 bossChildDelay :: Float
-bossChildDelay = 0.5  -- Delay between boss child spawns
+bossChildDelay = 5.0  -- Delay between boss child spawns
 
 hpOf :: EnemyType -> Int
 hpOf (EChar _)   = 100

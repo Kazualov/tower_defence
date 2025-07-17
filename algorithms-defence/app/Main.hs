@@ -10,24 +10,23 @@ import Game.Render
 import Game.Config
 import Game.Enemies
 import System.Random
-
+import Debug.Trace (trace)
 
 -- Main entry point
 main :: IO ()
 main = do
   gen <- newStdGen
-  let (waves, newGen) = generateRandomWaves gen 3
-      state = initialState waves newGen
+  let (waves, newGen) = generateRandomWaves gen 9  -- Generate 9 random waves
   play
     (InWindow "Haskell Tower Defense" (windowWidth, windowHeight) (100, 100))
     white
     60
-    state
+    (initialState waves newGen)
     render
     handleInput
     update
 
- -- Initial game state
+-- Initial game state
 initialState :: [[[Enemy]]] -> StdGen -> GameState
 initialState waves gen = GameState
   { gameStatus = Intro 0
@@ -45,7 +44,7 @@ initialState waves gen = GameState
       ]
   , selectedTower = Archer
   , currentWave = 0
-  , waveQueue = waves
+  , waveQueue = waves  -- Start with all waves
   , currentGroup = Nothing
   , enemySpawnTimer = 0
   , groupSpawnTimer = 0
@@ -165,7 +164,8 @@ updateGame dt gs
       let gs1 = updateWaveSystem dt gs
           (stillOnMap, reachedTower) = updateEnemies dt (enemies gs1)
           hpLoss = updateEnemyDamage reachedTower
-          newHP = towerHP gs1 - hpLoss
+          _ = trace ("Reached Tower: " ++ show (length reachedTower) ++ ", Enemies: " ++ show (map enemyType reachedTower) ++ ", HP Loss: " ++ show hpLoss ++ ", Tower HP: " ++ show (towerHP gs1)) ()
+          newHP = max 0 (towerHP gs1 - hpLoss)
           (updatedTowers, damagedEnemies) = applyTowerDamage (towers gs1) stillOnMap
           (aliveEnemies, coinGain, bossChildren) = gainCoinsOnKillsWithBoss 5 damagedEnemies
           cooledTowers = updateTowersCooldown dt updatedTowers
@@ -175,7 +175,7 @@ updateGame dt gs
             | null finalEnemies
               && null (waveQueue gs1)
               && currentGroup gs1 == Nothing
-              && currentWave gs1 == length generateWaves - 1
+              && currentWave gs1 == 9  -- 9 random waves + 1 boss wave
               = Victory
             | otherwise = Playing
       in gs1 { enemies = finalEnemies
