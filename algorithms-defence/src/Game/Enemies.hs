@@ -1,8 +1,11 @@
 module Game.Enemies where
 
+import System.Random (Random(randomR), StdGen, mkStdGen, split)  -- Add this import
 import Graphics.Gloss
 import Game.Types
 import Game.Config
+
+
 
 createEnemy :: EnemyType -> Game.Types.Path -> Enemy
 createEnemy etype path =
@@ -101,3 +104,82 @@ generateWaves =
     , [ createEnemy (EString "hello") Upper | _ <- [1..3] ]
     ]
   ]
+
+
+-- Generate random waves
+generateRandomWaves :: StdGen -> Int -> ([[[Enemy]]], StdGen)
+generateRandomWaves gen waveCount =
+  generateWavesRec gen waveCount []
+  where
+    generateWavesRec :: StdGen -> Int -> [[[Enemy]]] -> ([[[Enemy]]], StdGen)
+    generateWavesRec g 0 acc = (reverse acc, g)
+    generateWavesRec g n acc =
+      let (wave, newGen) = generateRandomWave (createWaveParams n difficultyMultiplier) g
+      in generateWavesRec newGen (n-1) (wave:acc)
+
+    -- Add difficulty setting
+    createWaveParams :: Int -> Float -> WaveParams
+    createWaveParams waveNum difficultyMultiplier = WaveParams
+      { waveSize = 5 + waveNum * 2
+      , groupCount = 1 + (waveNum `div` 3)
+      , intensity = min 2.0 (0.2 + fromIntegral waveNum * 0.1 * difficultyMultiplier)
+      }
+
+
+-- Generate a single random wave
+generateRandomWave :: WaveParams -> StdGen -> ([[Enemy]], StdGen)
+generateRandomWave params gen =
+  let (enemiesPerGroup, gen1) = distributeEnemies (waveSize params) (groupCount params) gen
+      (groups, finalGen) = generateGroupsRec enemiesPerGroup params gen1 []
+  in (groups, finalGen)
+
+-- Distribute enemies into groups
+distributeEnemies :: Int -> Int -> StdGen -> ([Int], StdGen)
+distributeEnemies total groups gen =
+  distributeRec gen groups total []
+  where
+    distributeRec :: StdGen -> Int -> Int -> [Int] -> ([Int], StdGen)
+    distributeRec g 1 remaining acc = (reverse (remaining:acc), g)
+    distributeRec g n remaining acc =
+      let (count, newGen) = randomR (1, remaining - (n - 1)) g
+      in distributeRec newGen (n-1) (remaining - count) (count:acc)
+
+-- Generate enemy groups recursively
+generateGroupsRec :: [Int] -> WaveParams -> StdGen -> [[Enemy]] -> ([[Enemy]], StdGen)
+generateGroupsRec [] _ g acc = (reverse acc, g)
+generateGroupsRec (size:sizes) params g acc =
+  let (pathRand, g1) = randomR (0.0 :: Float, 1.0) g
+      path = if pathRand < 0.5 then Upper else Lower
+      (group, newGen) = generateEnemyGroup size (intensity params) path g1
+  in generateGroupsRec sizes params newGen (group:acc)
+
+-- Generate a group of enemies
+generateEnemyGroup :: Int -> Float -> Game.Types.Path -> StdGen -> ([Enemy], StdGen)
+generateEnemyGroup size intensity path gen =
+  generateEnemiesRec size gen []
+  where
+    generateEnemiesRec :: Int -> StdGen -> [Enemy] -> ([Enemy], StdGen)
+    generateEnemiesRec 0 g acc = (reverse acc, g)
+    generateEnemiesRec n g acc =
+      let (typeRand, g1) = randomR (0.0 :: Float, 1.0) g
+          enemyType = selectEnemyType typeRand intensity
+          g2 = g1  -- not used anymore but required for chaining
+          baseHealth = hpOf enemyType
+          enemy = (createEnemy enemyType path) { health = baseHealth }
+      in generateEnemiesRec (n-1) g2 (enemy:acc)
+
+
+-- enemyType = selectEnemyType typeRand intensity
+          -- (healthRand, g2) = randomR (0.8, 1.2) g1
+          -- baseHealth = hpOf enemyType
+          -- adjustedHealth = round (fromIntegral baseHealth * healthRand * (1 + intensity))
+          -- enemy = (createEnemy enemyType path) { health = adjustedHealth }
+
+-- Select enemy type based on random value and intensity
+selectEnemyType :: Float -> Float -> EnemyType
+selectEnemyType r intensity
+  | r < 0.2 * intensity    = EList [EInt 1, EInt 2, EInt 3]
+  | r < 0.3 * intensity    = EMap [("key", EInt 42)]
+  | r < 0.4 + 0.1 * intensity = EString "hard"
+  | r < 0.5 + 0.1 * intensity = EInt 52
+  | otherwise              = EChar 'A'

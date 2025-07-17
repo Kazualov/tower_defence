@@ -1,5 +1,7 @@
 module Game.Types where
 
+import System.Random (StdGen)
+
 type Position = (Float, Float)
 
 type TowerSpot = (Float, Float)
@@ -26,11 +28,12 @@ data GameState = GameState
   , enemies :: [Enemy]
   -- Waves
   , currentWave :: Int
-  , waveQueue :: [[Enemy]]       -- groups left to spawn in current wave
+  , waveQueue :: [[[Enemy]]]       -- groups left to spawn in current wave
   , currentGroup :: Maybe ([Enemy], Int) -- (enemies in group, enemies spawned count)
   , enemySpawnTimer :: Float
   , groupSpawnTimer :: Float
   , wavePauseTimer :: Float
+  , randomGen :: StdGen
   -- Waves
   , towers      :: [Tower]
   , towerSpots  :: [TowerSpot]
@@ -61,3 +64,9 @@ data Enemy = Enemy
   , health          :: Int
   } deriving (Show, Eq)
 
+
+data WaveParams = WaveParams
+  { waveSize :: Int          -- Number of enemies in wave
+  , groupCount :: Int        -- Number of groups
+  , intensity :: Float       -- 0-1 scale of difficulty
+  } deriving (Show)

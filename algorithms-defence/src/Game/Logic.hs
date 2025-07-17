@@ -86,9 +86,9 @@ distance (x1, y1) (x2, y2) = sqrt ((x1 - x2)^2 + (y1 - y2)^2)
 updateWaveSystem :: Float -> GameState -> GameState
 updateWaveSystem dt gs@GameState{..}
   | wavePauseTimer > 0 = handleWavePause dt gs
-  | otherwise           = case currentGroup of
-      Nothing                   -> handleGroupDelay dt gs
-      Just (group, count)       -> spawnEnemiesFromGroup dt gs group count
+  | otherwise = case currentGroup of
+      Nothing -> handleGroupDelay dt gs
+      Just (group, count) -> spawnEnemiesFromGroup dt gs group count
 
 handleWavePause :: Float -> GameState -> GameState
 handleWavePause dt gs@GameState{..} =
@@ -99,17 +99,18 @@ handleWavePause dt gs@GameState{..} =
      else gs'
 
 startNextWave :: GameState -> GameState
-startNextWave gs@GameState{..}
-  | nextWave < length generateWaves = gs
-      { currentWave     = nextWave
-      , waveQueue       = generateWaves !! nextWave
-      , currentGroup    = Nothing
-      , enemySpawnTimer = 0
-      , groupSpawnTimer = 0
-      }
-  | otherwise = gs
+startNextWave gs@GameState{..} =
+  let (newWave, newGen) = generateRandomWave (createWaveParams (currentWave + 1)) randomGen
+  in gs { waveQueue = waveQueue ++ [newWave]
+        , randomGen = newGen
+        , currentWave = currentWave + 1
+        }
   where
-    nextWave = currentWave + 1
+    createWaveParams n = WaveParams
+      { waveSize = 5 + n * 2
+      , groupCount = 1 + n `div` 3
+      , intensity = min 1.0 (0.2 + fromIntegral n * 0.1)
+      }
 
 
 handleGroupDelay :: Float -> GameState -> GameState
@@ -118,10 +119,13 @@ handleGroupDelay dt gs@GameState{..}
       gs { groupSpawnTimer = max 0 (groupSpawnTimer - dt) }
   | otherwise = case waveQueue of
       [] -> gs { wavePauseTimer = waveDelay }
-      (group:rest) -> gs { currentGroup = Just (group, 0)
-                         , waveQueue = rest
-                         , enemySpawnTimer = 0
-                         }
+      (wave:restWaves) -> case wave of
+        [] -> gs { waveQueue = restWaves }  -- skip empty wave
+        (group:restGroups) -> gs { currentGroup = Just (group, 0)
+                                 , waveQueue = restGroups : restWaves
+                                 , enemySpawnTimer = 0
+                                 }
+
 
 
 spawnEnemiesFromGroup :: Float -> GameState -> [Enemy] -> Int -> GameState
