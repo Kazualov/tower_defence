@@ -2,6 +2,9 @@ module Game.Config where
 
 import Game.Types
 
+difficultyMultiplier :: Float
+difficultyMultiplier = 0.2
+
 coinRewardPerKill :: Int
 coinRewardPerKill = 10
 

@@ -9,21 +9,27 @@ import Game.Logic
 import Game.Render
 import Game.Config
 import Game.Enemies
+import System.Random
+
 
 -- Main entry point
 main :: IO ()
-main = play
-  (InWindow "Haskell Tower Defense" (windowWidth, windowHeight) (100, 100))
-  white
-  60
-  initialState
-  render
-  handleInput
-  update
+main = do
+  gen <- newStdGen
+  let (waves, newGen) = generateRandomWaves gen 3
+      state = initialState waves newGen
+  play
+    (InWindow "Haskell Tower Defense" (windowWidth, windowHeight) (100, 100))
+    white
+    60
+    state
+    render
+    handleInput
+    update
 
--- Initial game state
-initialState :: GameState
-initialState = GameState
+ -- Initial game state
+initialState :: [[[Enemy]]] -> StdGen -> GameState
+initialState waves gen = GameState
   { gameStatus = Intro 0
   , towerHP = 100
   , doodleText = "Hello"
@@ -39,12 +45,13 @@ initialState = GameState
       ]
   , selectedTower = Archer
   , currentWave = 0
-  , waveQueue = generateWaves !! 0
+  , waveQueue = waves
   , currentGroup = Nothing
   , enemySpawnTimer = 0
   , groupSpawnTimer = 0
   , wavePauseTimer = 0
-  , coins = 10000
+  , randomGen = gen
+  , coins = 100
   , isPaused = False
   , showPauseMenu = False
   , selectedModificator = Nothing
