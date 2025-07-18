@@ -1,0 +1,69 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell with Stack
+        uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: stack build --copy-bins
+
+      - name: Create .app bundle
+        shell: bash
+        run: |
+          APP_NAME="algorithms-defence"
+          mkdir -p $APP_NAME.app/Contents/MacOS
+          mkdir -p $APP_NAME.app/Contents/Resources
+          
+          # Copy binary
+          cp $(find .stack-work -type f -perm +111 -name "$APP_NAME") $APP_NAME.app/Contents/MacOS/$APP_NAME
+          
+          # Generate Info.plist
+          cat > $APP_NAME.app/Contents/Info.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>$APP_NAME</string>
+            <key>CFBundleExecutable</key>
+            <string>$APP_NAME</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.example.$APP_NAME</string>
+            <key>CFBundleVersion</key>
+            <string>1.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Upload macOS .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: algorithms-defence.app
