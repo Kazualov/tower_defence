@@ -13,7 +13,7 @@ Or if you have other OS, sorry, just use `git pull`, `stack run` in main branch
 
 ## 🎮 How to Play
 
-Defend your **main tower** (it currently looks like a keyhole) from waves of incoming enemies — each representing different **data types**!
+Defend your **main tower** from waves of incoming enemies — each representing different **data types**!
 
 ### 🛡️ Tower Types
 
