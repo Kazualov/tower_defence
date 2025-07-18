@@ -12,7 +12,7 @@ totalIntroTime = 5.0
 
 -- Difficulty scaling factor for waves
 difficultyMultiplier :: Float
-difficultyMultiplier = 0.2
+difficultyMultiplier = 1
 
 -- Coins earned per enemy kill
 coinRewardPerKill :: Int

@@ -19,28 +19,33 @@ updateTowersCooldown dt = map updateTower
 
 -- | Handle all tower attacks, applying damage and resetting cooldowns
 applyTowerDamage :: [Tower] -> [Enemy] -> ([Tower], [Enemy])
-applyTowerDamage towers enemies = foldl attackIfReady ([], enemies) towers
-  where
-    attackIfReady (ts, es) tower
+applyTowerDamage [] enemies = ([], enemies)
+applyTowerDamage (tower:rest) enemies =
+  let (updatedTowers, currentEnemies) = applyTowerDamage rest enemies
+  in case () of
+    _ 
       -- Tower is ready to attack
-      | towerCooldown tower <= 0 =
-          let (maybeEnemyHit, newEnemies) = attackOneEnemy tower es
-              resetTower = tower 
+      | towerCooldown tower <= 0 ->
+          let (maybeEnemyHit, newEnemies) = attackOneEnemy tower currentEnemies
+              resetTower = tower
                 { towerCooldown = cooldownFor (towerType tower)
                 , towerTarget   = maybeEnemyHit
                 }
-          in (resetTower : ts, newEnemies)
+          in (resetTower : updatedTowers, newEnemies)
 
-      -- Tower is not ready or target is invalid
-      | otherwise =
-          let targetStillValid = case towerTarget tower of
-                Just target -> target `elem` es &&
-                               inRange tower (enemyPosition target) (towerPos tower)
-                Nothing -> False
-              tower' = if targetStillValid 
-                       then tower 
-                       else tower { towerTarget = Nothing }
-          in (tower' : ts, es)
+      -- Tower is not ready, but target is still valid
+      | targetStillValid ->
+          (tower : updatedTowers, currentEnemies)
+
+      -- Tower is not ready and target is invalid
+      | otherwise ->
+          (tower { towerTarget = Nothing } : updatedTowers, currentEnemies)
+  where
+    targetStillValid = case towerTarget tower of
+      Just target -> target `elem` enemies &&
+                     inRange tower (enemyPosition target) (towerPos tower)
+      Nothing -> False
+
 
     -- Attack a single enemy (if one is in range)
     attackOneEnemy :: Tower -> [Enemy] -> (Maybe Enemy, [Enemy])

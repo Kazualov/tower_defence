@@ -233,13 +233,6 @@ renderIntro gs = case gameStatus gs of
     in Pictures [ scale 0.5 0.5 $ translate (-20) (-10) image ]
   _ -> Blank
 
--- Dynamic fade-in parts for intro animation (text overlays)
-introParts :: Float -> [Picture]
-introParts t =
-  [ if t > 0 then fadeIn (t / 1.5) $ centerText 0 "Algorithms Defense" 0.3 else Blank
-  , if t > 2 then fadeIn ((t - 2) / 1.5) $ centerText (-60) "Press SPACE to skip..." 0.15 else Blank
-  ]
-
 -- Apply transparency to a picture
 fadeIn :: Float -> Picture -> Picture
 fadeIn alpha pic = Color (makeColor 0 0 0 (min 1 alpha)) pic
