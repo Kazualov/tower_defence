@@ -76,6 +76,13 @@ glancing at the clock — **5 minutes left**.
 A sigh of relief...  
 But then —
 
+## Comics
+<p align="center">
+  <img src="algorithms-defence/assets/6 frame.jpg" alt="Project Logo" width="750"/>
+</p>
+
+
+
 🚨S o m e t h i n g  w e n t  w r o n g🚨
 
 ## Participation
@@ -97,12 +104,6 @@ But then —
 5. Implemented boss
 6. Embedded modificators
 7. Came up with an idea of the lore
-
-
-## Comics
-<p align="center">
-  <img src="algorithms-defence/assets/6 frame.jpg" alt="Project Logo" width="750"/>
-</p>
 
 
 
