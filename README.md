@@ -99,6 +99,10 @@ But then —
 7. Came up with an idea of the lore
 
 
+## Comics
+<p align="center">
+  <img src="algorithms-defence/assets/6 frame.jpg" alt="Project Logo" width="750"/>
+</p>
 
 
 
