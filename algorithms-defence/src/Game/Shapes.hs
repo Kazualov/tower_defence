@@ -38,16 +38,15 @@ arrowhead =
 mapBorder :: Picture
 mapBorder = color black $ rectangleWire mapWidth mapHeight
 
--- | A small static main tower drawn on the map.
+-- | A small static main tower drawn on the map as the letter "A".
 mainTower :: Picture
-mainTower = translate towerX towerY $ pictures
-  [ color black $ translate 0 20 $ circleSolid 15
-  , color black $ rectangleSolid 10 30
+mainTower = translate towerX towerY $ scale 1.5 1.5 $ color black $ pictures
+  [ line [(-10, -20), (0, 20), (10, -20)]             -- A shape
+  , translate 0 0 $ rectangleSolid 12 1              -- crossbar of A
   ]
   where
     towerX = -mapWidth / 2 + 40
     towerY = -20
-
 -- | A stylized lambda-shaped path made of multiple thick lines and curves.
 lambdaPath :: Picture
 lambdaPath = pictures
