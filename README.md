@@ -85,26 +85,6 @@ But then —
 
 🚨S o m e t h i n g  w e n t  w r o n g🚨
 
-## Participation
-
-### Aleksandr
-1. Modified intro page with comics
-2. Added pause menu
-3. Created all enemies
-4. Created models for towers
-5. Implemented win/lose screen
-6. Modified waves generation with randomness
-7. Added shop
-
-### Ivan
-1. Added intro page
-2. Created lambda map(UI layout)
-3. Created basic waves system
-4. Created paths for enemies
-5. Implemented boss
-6. Embedded modificators
-7. Came up with an idea of the lore
-
 
 
 
